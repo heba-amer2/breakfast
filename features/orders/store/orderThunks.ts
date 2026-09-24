@@ -86,8 +86,9 @@ export const fetchRoomOrderSummary = createAsyncThunk(
       dispatch(setOrderError(null));
 
       const data = await apiRequest<RoomOrderSummary>(`/api/rooms/${roomId}/orders/summary`, {}, true);
-      dispatch(setOrderSummary(data));
-      return data;
+      const normalizedData: RoomOrderSummary = data ? { ...data, roomId: data.roomId ?? roomId } : data;
+      dispatch(setOrderSummary(normalizedData));
+      return normalizedData;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to fetch order summary";
       dispatch(setOrderError(message));

@@ -2,24 +2,38 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { FiCheckCircle, FiClock, FiInfo, FiPlus } from "react-icons/fi";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import {
+  FiAlertTriangle,
+  FiCheckCircle,
+  FiClock,
+  FiInfo,
+  FiPlus,
+  FiTrash2,
+} from "react-icons/fi";
 import { LuUtensils } from "react-icons/lu";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { TopBar } from "@/components/layout/top-bar";
 import { Button, Input } from "@/components/ui";
 import { useAuthFetch } from "@/features/shared/hooks/useAuthFetch";
-import { fetchRestaurants } from "@/features/restaurants/store/restaurantThunks";
+import {
+  createAdminRestaurant,
+  fetchRestaurants,
+} from "@/features/restaurants/store/restaurantThunks";
 import { createRoom, fetchRooms } from "@/features/rooms/store/roomThunks";
 import { useAppDispatch, useAppSelector } from "@/features/shared/store/hooks";
+import type { MenuItemDto } from "@/features/restaurants/store/restaurantSlice";
 
 type OpenRoomFormValues = {
-  mode: "existing" | "new";
   restaurantId: string;
   restaurantName: string;
   restaurantPhone: string;
   description: string;
+  initialMenu: Array<{
+    name: string;
+    price: string;
+  }>;
 };
 
 export default function OpenRoomScreen() {
@@ -29,31 +43,39 @@ export default function OpenRoomScreen() {
   const rooms = useAppSelector((state) => state.rooms.items);
   const error = useAppSelector((state) => state.rooms.error);
 
+  const [mode, setMode] = useState<"existing" | "new">("existing");
   const [formError, setFormError] = useState<string | null>(null);
 
   const {
     register,
+    control,
     handleSubmit,
-    watch,
-    setValue,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<OpenRoomFormValues>({
     defaultValues: {
-      mode: "existing",
       restaurantId: "",
       restaurantName: "",
       restaurantPhone: "",
       description: "",
+      initialMenu: [],
     },
   });
 
-  const mode = watch("mode");
-  const restaurantId = watch("restaurantId");
-  const restaurantName = watch("restaurantName");
-  const description = watch("description");
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "initialMenu",
+  });
+
+  const restaurantId = useWatch({ control, name: "restaurantId" });
+  const restaurantName = useWatch({ control, name: "restaurantName" });
+  const description = useWatch({ control, name: "description" });
 
   useAuthFetch(async () => {
-    await Promise.all([dispatch(fetchRestaurants()), dispatch(fetchRooms(undefined))]);
+    await Promise.all([
+      dispatch(fetchRestaurants()),
+      dispatch(fetchRooms(undefined)),
+    ]);
   });
 
   const selectedRestaurant = useMemo(
@@ -84,14 +106,11 @@ export default function OpenRoomScreen() {
   const onSubmit = async (data: OpenRoomFormValues) => {
     setFormError(null);
 
-    let payload: {
-      restaurantName: string;
-      restaurantPhone?: string;
-      description?: string;
-      restaurantId?: number;
-    };
+    let restaurantIdToUse: number | undefined;
+    let restaurantNameToUse: string;
+    let restaurantPhoneToUse: string | undefined;
 
-    if (data.mode === "existing") {
+    if (mode === "existing") {
       const selected = restaurants.find(
         (item) => String(item.id) === data.restaurantId,
       );
@@ -99,34 +118,83 @@ export default function OpenRoomScreen() {
         setFormError("Please select a restaurant.");
         return;
       }
-      payload = {
-        restaurantId: selected.id,
-        restaurantName: selected.name,
-        restaurantPhone: selected.phone ?? undefined,
-        description: data.description?.trim() || undefined,
-      };
+      restaurantIdToUse = selected.id;
+      restaurantNameToUse = selected.name;
+      restaurantPhoneToUse = selected.phone ?? undefined;
     } else {
-      if (!data.restaurantName?.trim()) {
+      // New restaurant mode
+      const trimmedName = data.restaurantName?.trim();
+      if (!trimmedName) {
         setFormError("Restaurant name is required.");
         return;
       }
-      payload = {
-        restaurantName: data.restaurantName.trim(),
-        restaurantPhone: data.restaurantPhone?.trim() || undefined,
-        description: data.description?.trim() || undefined,
-      };
+
+      // Check for duplicate restaurant name against existing restaurants
+      const isDuplicate = restaurants.some(
+        (r) => r.name.trim().toLowerCase() === trimmedName.toLowerCase(),
+      );
+      if (isDuplicate) {
+        setFormError(
+          "A restaurant with this name already exists. Please choose a different name or select it from 'Existing restaurant'.",
+        );
+        return;
+      }
+
+      // Format initial menu items (if any entered)
+      const formattedMenu: MenuItemDto[] = (data.initialMenu || [])
+        .filter((item) => item.name?.trim() && !isNaN(Number(item.price)) && Number(item.price) > 0)
+        .map((item) => ({
+          name: item.name.trim(),
+          verifiedPrice: Number(item.price),
+        }));
+
+      // If initial menu items are provided, register the restaurant with verified menu items first
+      if (formattedMenu.length > 0) {
+        const restaurantResult = await dispatch(
+          createAdminRestaurant({
+            name: trimmedName,
+            phone: data.restaurantPhone?.trim() || undefined,
+            menu: formattedMenu,
+          }),
+        );
+
+        if (createAdminRestaurant.fulfilled.match(restaurantResult)) {
+          const createdRestaurant = restaurantResult.payload;
+          restaurantIdToUse = createdRestaurant.id;
+          restaurantNameToUse = createdRestaurant.name;
+          restaurantPhoneToUse = createdRestaurant.phone ?? undefined;
+        } else {
+          const errorMsg =
+            (restaurantResult.payload as string) ||
+            "Failed to create new restaurant. Please check the information and try again.";
+          setFormError(errorMsg);
+          return;
+        }
+      } else {
+        // Zero initial menu items: RoomService.createRoom automatically creates/finds the restaurant with 0 items
+        restaurantNameToUse = trimmedName;
+        restaurantPhoneToUse = data.restaurantPhone?.trim() || undefined;
+      }
     }
 
-    const result = await dispatch(createRoom(payload));
+    // Step 2: Open the room linked to this restaurant
+    const roomPayload = {
+      ...(restaurantIdToUse ? { restaurantId: restaurantIdToUse } : {}),
+      restaurantName: restaurantNameToUse,
+      restaurantPhone: restaurantPhoneToUse,
+      description: data.description?.trim() || undefined,
+    };
 
-    if (createRoom.fulfilled.match(result)) {
-      router.push(`/admin/rooms/${result.payload.id}/summary`);
+    const roomResult = await dispatch(createRoom(roomPayload));
+
+    if (createRoom.fulfilled.match(roomResult)) {
+      router.push(`/admin/rooms/${roomResult.payload.id}/summary`);
       return;
     }
 
     setFormError(
-      typeof result.payload === "string"
-        ? result.payload
+      typeof roomResult.payload === "string"
+        ? roomResult.payload
         : "Failed to open room.",
     );
   };
@@ -158,7 +226,7 @@ export default function OpenRoomScreen() {
               </div>
 
               <p className="mt-3 max-w-xl text-sm text-slate-600">
-                Choose an existing restaurant or add a new one, then publish the room for live ordering.
+                Choose an existing restaurant or add a new one with its starting menu, then publish the room for live ordering.
               </p>
             </div>
 
@@ -193,6 +261,7 @@ export default function OpenRoomScreen() {
           >
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
               <div className="space-y-5">
+                {/* Mode Selector */}
                 <div className="inline-flex rounded-2xl bg-slate-100 p-1">
                   {(
                     [
@@ -204,8 +273,9 @@ export default function OpenRoomScreen() {
                       key={tab.key}
                       type="button"
                       onClick={() => {
-                        setValue("mode", tab.key);
+                        setMode(tab.key);
                         setFormError(null);
+                        clearErrors();
                       }}
                       className={[
                         "rounded-xl px-4 py-2.5 text-sm font-medium transition cursor-pointer",
@@ -219,6 +289,7 @@ export default function OpenRoomScreen() {
                   ))}
                 </div>
 
+                {/* Existing Restaurant Selection */}
                 {mode === "existing" ? (
                   <div>
                     <label
@@ -235,7 +306,7 @@ export default function OpenRoomScreen() {
                           Boolean(val) ||
                           "Please select a restaurant.",
                       })}
-                      className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                      className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 cursor-pointer"
                     >
                       <option value="">Select a restaurant…</option>
                       {restaurants.map((restaurant) => (
@@ -252,32 +323,172 @@ export default function OpenRoomScreen() {
                     ) : null}
                   </div>
                 ) : (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <Input
-                        label="Restaurant name"
-                        placeholder="e.g. Foul & Falafel"
-                        {...register("restaurantName", {
-                          validate: (val) =>
-                            mode !== "new" ||
-                            Boolean(val?.trim()) ||
-                            "Restaurant name is required.",
-                        })}
-                        error={errors.restaurantName?.message}
-                        className="rounded-2xl border-slate-200 bg-slate-50 focus:bg-white"
-                      />
+                  /* New Restaurant Details + Initial Menu Items */
+                  <div className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <Input
+                          label="Restaurant name *"
+                          placeholder="e.g. Foul & Falafel, Zooba, El Shabrawy"
+                          {...register("restaurantName", {
+                            validate: (val) => {
+                              if (mode !== "new") return true;
+                              const trimmed = val?.trim();
+                              if (!trimmed) return "Restaurant name is required.";
+                              const isDuplicate = restaurants.some(
+                                (r) =>
+                                  r.name.trim().toLowerCase() ===
+                                  trimmed.toLowerCase(),
+                              );
+                              if (isDuplicate) {
+                                return "A restaurant with this name already exists.";
+                              }
+                              return true;
+                            },
+                          })}
+                          error={errors.restaurantName?.message}
+                          className="rounded-2xl border-slate-200 bg-slate-50 focus:bg-white"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Input
+                          label="Phone (optional)"
+                          placeholder="e.g. 01xxxxxxxxx or landline"
+                          {...register("restaurantPhone")}
+                          className="rounded-2xl border-slate-200 bg-slate-50 focus:bg-white"
+                        />
+                      </div>
                     </div>
-                    <div className="sm:col-span-2">
-                      <Input
-                        label="Phone (optional)"
-                        placeholder="01xxxxxxxxx"
-                        {...register("restaurantPhone")}
-                        className="rounded-2xl border-slate-200 bg-slate-50 focus:bg-white"
-                      />
+
+                    {/* Initial Menu Items Section */}
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 space-y-4">
+                      <div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-800">
+                              Initial Menu Items
+                            </h3>
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              These items will be added to the restaurant&apos;s verified menu and made available immediately in the room. (Optional)
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => append({ name: "", price: "" })}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-white px-3.5 py-2 text-xs font-semibold text-emerald-800 shadow-2xs hover:bg-emerald-50 hover:border-emerald-400 transition cursor-pointer self-start sm:self-auto"
+                          >
+                            <FiPlus size={14} />
+                            <span>+ Add Menu Item</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {fields.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-white/70 p-4 text-center">
+                          <p className="text-xs text-slate-400 italic">
+                            No initial menu items added.
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            You can open the room without starting dishes, add them anytime later from Restaurants &amp; Menus, or let users add custom dishes.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {fields.map((field, index) => (
+                            <div
+                              key={field.id}
+                              className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs space-y-3"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                  Item {index + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => remove(index)}
+                                  aria-label={`Remove item ${index + 1}`}
+                                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition cursor-pointer"
+                                >
+                                  <FiTrash2 size={13} />
+                                  <span>Remove</span>
+                                </button>
+                              </div>
+
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div>
+                                  <label
+                                    htmlFor={`initialMenu-${index}-name`}
+                                    className="mb-1 block text-xs font-medium text-slate-700"
+                                  >
+                                    Item name *
+                                  </label>
+                                  <input
+                                    id={`initialMenu-${index}-name`}
+                                    placeholder="e.g. Foul Mudammas, Falafel"
+                                    maxLength={150}
+                                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                                    {...register(
+                                      `initialMenu.${index}.name` as const,
+                                      {
+                                        required: "Item name is required",
+                                        validate: (val) =>
+                                          Boolean(val?.trim()) ||
+                                          "Name cannot be empty",
+                                      },
+                                    )}
+                                  />
+                                  {errors.initialMenu?.[index]?.name ? (
+                                    <p className="mt-1 text-[10px] font-medium text-rose-600">
+                                      {errors.initialMenu[index]?.name?.message}
+                                    </p>
+                                  ) : null}
+                                </div>
+
+                                <div>
+                                  <label
+                                    htmlFor={`initialMenu-${index}-price`}
+                                    className="mb-1 block text-xs font-medium text-slate-700"
+                                  >
+                                    Price (EGP) *
+                                  </label>
+                                  <input
+                                    id={`initialMenu-${index}-price`}
+                                    type="number"
+                                    step="0.5"
+                                    min="0.01"
+                                    max="100000"
+                                    placeholder="e.g. 30"
+                                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                                    {...register(
+                                      `initialMenu.${index}.price` as const,
+                                      {
+                                        required: "Price is required",
+                                        validate: (val) => {
+                                          const num = Number(val);
+                                          if (isNaN(num) || num <= 0) return "Price must be > 0";
+                                          if (num > 100000) return "Price cannot exceed 100k";
+                                          return true;
+                                        },
+                                      },
+                                    )}
+                                  />
+                                  {errors.initialMenu?.[index]?.price ? (
+                                    <p className="mt-1 text-[10px] font-medium text-rose-600">
+                                      {errors.initialMenu[index]?.price?.message}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
+                {/* Description */}
                 <div>
                   <label
                     htmlFor="room-description"
@@ -306,12 +517,21 @@ export default function OpenRoomScreen() {
                 </div>
 
                 {formError || error ? (
-                  <p className="rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
-                    {formError || error}
-                  </p>
+                  <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50/90 p-3.5 shadow-2xs">
+                    <FiAlertTriangle className="h-5 w-5 shrink-0 text-rose-600 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-bold uppercase tracking-wider text-rose-900">
+                        Unable to open room
+                      </p>
+                      <p className="text-sm font-medium text-rose-700 leading-snug">
+                        {formError || error}
+                      </p>
+                    </div>
+                  </div>
                 ) : null}
               </div>
 
+              {/* Sidebar Preview */}
               <aside className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
@@ -355,6 +575,14 @@ export default function OpenRoomScreen() {
                     <span>Order access</span>
                     <span className="font-medium text-slate-900">Live</span>
                   </div>
+                  {mode === "new" && fields.length > 0 ? (
+                    <div className="flex items-center justify-between rounded-2xl bg-white px-3 py-2.5 shadow-sm">
+                      <span>Starting dishes</span>
+                      <span className="font-bold text-emerald-800">
+                        {fields.length} {fields.length === 1 ? "item" : "items"}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="mt-5">
@@ -364,7 +592,13 @@ export default function OpenRoomScreen() {
                     type="submit"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "Opening…" : "Open breakfast room"}
+                    {isSubmitting
+                      ? mode === "new"
+                        ? "Creating & Opening…"
+                        : "Opening…"
+                      : mode === "new"
+                        ? "Create Restaurant & Open Room"
+                        : "Open breakfast room"}
                   </Button>
                 </div>
               </aside>

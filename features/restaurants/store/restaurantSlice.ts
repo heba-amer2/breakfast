@@ -4,6 +4,7 @@ export type MenuItemDto = {
   id?: number;
   name: string;
   verifiedPrice: number;
+  price?: number;
   lastVerifiedAt?: string | number[] | null;
 };
 

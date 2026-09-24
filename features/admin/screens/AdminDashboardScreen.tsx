@@ -3,20 +3,23 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  FiAlertTriangle,
   FiArrowRight,
   FiCheckSquare,
   FiClock,
   FiCoffee,
   FiFileText,
   FiGrid,
+  FiLock,
   FiPlusCircle,
+  FiRefreshCw,
   FiUsers,
 } from "react-icons/fi";
 
 import { StatCard } from "@/components/dashboard/stat-card";
 import { PageContainer } from "@/components/layout/page-container";
 import { TopBar } from "@/components/layout/top-bar";
-import { Button, CountdownTimer, EmptyState, StatusChip } from "@/components/ui";
+import { Button, CountdownTimer, EmptyState, Modal, StatusChip } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchPendingRooms,
@@ -24,7 +27,8 @@ import {
   fetchUsers,
 } from "@/features/admin/store/adminThunks";
 import { useAuthFetch } from "@/features/shared/hooks/useAuthFetch";
-import { fetchRooms } from "@/features/rooms/store/roomThunks";
+import { closeRoom, fetchRooms } from "@/features/rooms/store/roomThunks";
+import type { RoomResponse } from "@/features/rooms/store/roomSlice";
 import { useAppDispatch, useAppSelector } from "@/features/shared/store/hooks";
 import { formatDateTime, formatMoney } from "@/lib/formatters";
 
@@ -36,7 +40,11 @@ export default function AdminDashboardScreen() {
   const unapproved = useAppSelector((state) => state.admin.unapprovedRooms);
   const pending = useAppSelector((state) => state.admin.pendingRooms);
   const error = useAppSelector((state) => state.admin.error);
+
   const [loading, setLoading] = useState(true);
+  const [closingRoom, setClosingRoom] = useState<RoomResponse | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
+  const [closeError, setCloseError] = useState<string | null>(null);
 
   useAuthFetch(async () => {
     setLoading(true);
@@ -53,6 +61,29 @@ export default function AdminDashboardScreen() {
     () => rooms.filter((room) => room.status === "OPEN"),
     [rooms],
   );
+
+  const handleCloseRoom = async () => {
+    if (!closingRoom) return;
+    setIsClosing(true);
+    setCloseError(null);
+
+    const result = await dispatch(closeRoom(closingRoom.id));
+    setIsClosing(false);
+
+    if (closeRoom.fulfilled.match(result)) {
+      setClosingRoom(null);
+      await Promise.all([
+        dispatch(fetchRooms(undefined)),
+        dispatch(fetchUnapprovedRooms()),
+      ]);
+    } else {
+      setCloseError(
+        typeof result.payload === "string"
+          ? result.payload
+          : "Failed to close room. Please try again.",
+      );
+    }
+  };
 
   const firstName = user?.name?.split(" ")[0] ?? "Admin";
 
@@ -231,9 +262,24 @@ export default function AdminDashboardScreen() {
                     <div className="flex items-center gap-2 shrink-0">
                       <Link href={`/admin/rooms/${room.id}/summary`}>
                         <Button size="sm" variant="secondary">
-                          Telephone Summary
+                          Summary
                         </Button>
                       </Link>
+
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          setCloseError(null);
+                          setClosingRoom(room);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <span className="inline-flex items-center gap-1 font-semibold">
+                          <FiLock size={12} />
+                          Close
+                        </span>
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -324,6 +370,75 @@ export default function AdminDashboardScreen() {
           </section>
         </div>
       </PageContainer>
+
+      {/* Confirmation Modal for Manual Room Close */}
+      <Modal
+        isOpen={Boolean(closingRoom)}
+        onClose={() => {
+          if (!isClosing) {
+            setClosingRoom(null);
+            setCloseError(null);
+          }
+        }}
+        title={
+          <div className="flex items-center gap-2 text-rose-700 font-bold">
+            <FiAlertTriangle size={20} className="shrink-0" />
+            <span>Close Breakfast Room #{closingRoom?.id}?</span>
+          </div>
+        }
+        description={
+          closingRoom ? `Stop ordering for ${closingRoom.restaurantName}` : undefined
+        }
+        maxWidth="md"
+      >
+        <div className="space-y-4 pt-1">
+          {closeError ? (
+            <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+              <FiAlertTriangle size={15} className="shrink-0 text-rose-600" />
+              <span>{closeError}</span>
+            </div>
+          ) : null}
+
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Are you sure you want to manually close this room? Team members will immediately be blocked from adding or changing orders.
+          </p>
+
+          <div className="flex items-center justify-end gap-2.5 pt-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setClosingRoom(null);
+                setCloseError(null);
+              }}
+              disabled={isClosing}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleCloseRoom}
+              disabled={isClosing}
+            >
+              <span className="inline-flex items-center gap-1.5 font-bold">
+                {isClosing ? (
+                  <>
+                    <FiRefreshCw size={13} className="animate-spin" />
+                    Closing…
+                  </>
+                ) : (
+                  <>
+                    <FiLock size={13} />
+                    Confirm Close
+                  </>
+                )}
+              </span>
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

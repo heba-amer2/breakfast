@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import {
   FiArrowLeft,
   FiClock,
+  FiDollarSign,
   FiFileText,
   FiPlus,
   FiShoppingBag,
@@ -21,6 +22,7 @@ import { useAppDispatch, useAppSelector } from "@/features/shared/store/hooks";
 import { deleteOrder, fetchMyCart } from "@/features/orders/store/orderThunks";
 import { fetchRoomById } from "@/features/rooms/store/roomThunks";
 import { formatMoney } from "@/lib/formatters";
+import { isRoomActive } from "@/lib/roomUtils";
 
 export default function CartPage() {
   const params = useParams<{ roomId: string }>();
@@ -31,6 +33,8 @@ export default function CartPage() {
   const cart = useAppSelector((state) => state.orders.items);
   const roomError = useAppSelector((state) => state.rooms.error);
   const orderError = useAppSelector((state) => state.orders.error);
+  const currentUser = useAppSelector((state) => state.auth.user);
+  const isAdmin = currentUser?.role === "ADMIN";
 
   const [loading, setLoading] = useState(true);
 
@@ -48,7 +52,7 @@ export default function CartPage() {
     setLoading(false);
   }, [roomId]);
 
-  const isOpen = room?.status === "OPEN";
+  const isOpen = isRoomActive(room);
 
   const cartTotal = cart.reduce((sum, item) => {
     const line =
@@ -274,7 +278,7 @@ export default function CartPage() {
 
             <div className="pt-2 space-y-2">
               <Link href={`/user/rooms/${roomId}/my-bill`} className="block">
-                <Button fullWidth size="lg" variant="primary">
+                <Button fullWidth size="lg" variant={isOpen ? "primary" : "secondary"}>
                   <span className="inline-flex items-center gap-2">
                     <FiFileText size={16} />
                     View My Bill Split
@@ -284,9 +288,20 @@ export default function CartPage() {
 
               <Link href={`/user/rooms/${roomId}`} className="block">
                 <Button fullWidth size="md" variant="secondary">
-                  Continue Adding Items
+                  {isOpen ? "Continue Adding Items" : "Back to Room Menu"}
                 </Button>
               </Link>
+
+              {!isOpen && isAdmin && room?.status === "CLOSED" ? (
+                <Link href={`/admin/rooms/${roomId}/receipt`} className="block">
+                  <Button fullWidth size="md" variant="primary">
+                    <span className="inline-flex items-center gap-2">
+                      <FiDollarSign size={16} />
+                      Proceed to Receipt Entry
+                    </span>
+                  </Button>
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>

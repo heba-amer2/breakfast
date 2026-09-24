@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import {
   FiAlertCircle,
   FiAlertTriangle,
@@ -53,12 +53,13 @@ export default function UsersManagementPage() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
   const [actionInProgress, setActionInProgress] = useState<number | null>(null);
   const [showMakeAllModal, setShowMakeAllModal] = useState(false);
-  const { register: registerConfirm, watch: watchConfirm, reset: resetConfirm } = useForm<{
+  const { register: registerConfirm, control: controlConfirm, reset: resetConfirm } = useForm<{
     confirmText: string;
   }>({
     defaultValues: { confirmText: "" },
   });
-  const confirmText = watchConfirm("confirmText") ?? "";
+  const watchedConfirm = useWatch({ control: controlConfirm, name: "confirmText" });
+  const confirmText = watchedConfirm ?? "";
   const [makingAllAdmin, setMakingAllAdmin] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";

@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import {
   FiAlertTriangle,
   FiArrowLeft,
   FiArrowRight,
   FiCheckCircle,
   FiClock,
-  FiDollarSign,
   FiFileText,
   FiInfo,
   FiRefreshCw,
@@ -18,41 +17,68 @@ import {
   FiShoppingBag,
   FiTruck,
   FiUsers,
+  FiX,
 } from "react-icons/fi";
+import { LuReceipt, LuUtensils } from "react-icons/lu";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { TopBar } from "@/components/layout/top-bar";
 import { Button, EmptyState, StatusChip } from "@/components/ui";
+import { clearBillingError } from "@/features/billing/store/billingSlice";
 import {
   enterReceipt,
   fetchBillPreview,
 } from "@/features/billing/store/billingThunks";
+import { clearOrderError, type RoomOrderSummary } from "@/features/orders/store/orderSlice";
 import { fetchRoomOrderSummary } from "@/features/orders/store/orderThunks";
-import { fetchRoomById } from "@/features/rooms/store/roomThunks";
+import { clearRoomError } from "@/features/rooms/store/roomSlice";
+import { fetchRoomById, fetchRoomMenu } from "@/features/rooms/store/roomThunks";
 import { useAuthFetch } from "@/features/shared/hooks/useAuthFetch";
 import { useAppDispatch, useAppSelector } from "@/features/shared/store/hooks";
 import { formatDateTime, formatMoney } from "@/lib/formatters";
 
 const priceKey = (itemName: string) => itemName.trim().toLowerCase();
 
-const stepBase = "flex flex-1 items-center gap-3 rounded-[18px] px-4 py-3";
-
-export default function Page() {
+export default function ReceiptEntryPage() {
   const params = useParams<{ roomId: string }>();
   const roomId = Number(params.roomId);
   const dispatch = useAppDispatch();
 
   const room = useAppSelector((state) => state.rooms.currentRoom);
-  const summary = useAppSelector((state) => state.orders.summary);
+  const menu = useAppSelector((state) => state.rooms.roomMenu);
+  const reduxSummary = useAppSelector((state) => state.orders.summary);
   const bill = useAppSelector((state) => state.billing.bill);
   const receiptDraft = useAppSelector((state) => state.billing.receiptDraft);
   const roomError = useAppSelector((state) => state.rooms.error);
   const orderError = useAppSelector((state) => state.orders.error);
   const billingError = useAppSelector((state) => state.billing.error);
 
+  const [localSummary, setLocalSummary] = useState<RoomOrderSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [priceOverrides, setPriceOverrides] = useState<Record<string, number>>({});
-  const { register, watch, setValue } = useForm<{
+  const [previewing, setPreviewing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [dismissedError, setDismissedError] = useState(false);
+
+  // Active summary scoped to current room with safe number comparison & fallback
+  const summary = useMemo(() => {
+    if (
+      localSummary &&
+      (!localSummary.roomId || Number(localSummary.roomId) === Number(roomId))
+    ) {
+      return localSummary;
+    }
+    if (
+      reduxSummary &&
+      (!reduxSummary.roomId || Number(reduxSummary.roomId) === Number(roomId))
+    ) {
+      return reduxSummary;
+    }
+    return null;
+  }, [localSummary, reduxSummary, roomId]);
+
+  const { register, control, setValue } = useForm<{
     deliveryFee: number;
     receiptTotal: string;
   }>({
@@ -61,6 +87,9 @@ export default function Page() {
       receiptTotal: "",
     },
   });
+
+  const watchedDeliveryFee = useWatch({ control, name: "deliveryFee" });
+  const watchedReceiptTotal = useWatch({ control, name: "receiptTotal" });
 
   useEffect(() => {
     if (room) {
@@ -72,9 +101,6 @@ export default function Page() {
       }
     }
   }, [room, setValue]);
-  const [previewing, setPreviewing] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
 
   useAuthFetch(async () => {
     if (!Number.isFinite(roomId)) {
@@ -84,19 +110,121 @@ export default function Page() {
 
     setLoading(true);
     setSuccess(null);
-    await Promise.all([
-      dispatch(fetchRoomById(roomId)),
-      dispatch(fetchRoomOrderSummary(roomId)),
-    ]);
-    setLoading(false);
+    dispatch(clearRoomError());
+    dispatch(clearOrderError());
+    dispatch(clearBillingError());
+
+    try {
+      const [, , summaryResult] = await Promise.all([
+        dispatch(fetchRoomById(roomId)),
+        dispatch(fetchRoomMenu(roomId)),
+        dispatch(fetchRoomOrderSummary(roomId)),
+      ]);
+
+      if (fetchRoomOrderSummary.fulfilled.match(summaryResult)) {
+        setLocalSummary(summaryResult.payload);
+      }
+    } finally {
+      setLoading(false);
+    }
   }, [roomId]);
 
-  const items = useMemo(() => summary?.aggregatedItems ?? [], [summary]);
+  // Robust extraction of aggregated items, individual orders, and participants
+  const { items, orderLines, participantCount } = useMemo(() => {
+    const rawAggregated = summary?.aggregatedItems ?? summary?.items ?? [];
+    const rawOrders = summary?.allOrders ?? summary?.orders ?? [];
 
-  const orderLines = useMemo(() => summary?.allOrders ?? [], [summary]);
+    const map = new Map<
+      string,
+      {
+        itemName: string;
+        totalQuantity: number;
+        totalPrice: number;
+        verifiedUnitPrice?: number;
+      }
+    >();
 
-  // Group the raw order lines per participant: useful while typing prices off
-  // the paper receipt (who asked for what).
+    // 1. Process aggregated items from summary
+    rawAggregated.forEach((item) => {
+      const name = (item.itemName ?? item.name ?? "").trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      const qty = Number(item.totalQuantity ?? item.quantity ?? 0);
+      const price = Number(item.totalPrice ?? item.price ?? 0);
+      const verified =
+        typeof item.verifiedUnitPrice === "number" && item.verifiedUnitPrice > 0
+          ? item.verifiedUnitPrice
+          : typeof item.verifiedPrice === "number" && item.verifiedPrice > 0
+          ? item.verifiedPrice
+          : undefined;
+
+      const existing = map.get(key);
+      if (existing) {
+        existing.totalQuantity += qty;
+        existing.totalPrice += price;
+        if (verified && (!existing.verifiedUnitPrice || existing.verifiedUnitPrice <= 0)) {
+          existing.verifiedUnitPrice = verified;
+        }
+      } else {
+        map.set(key, {
+          itemName: name,
+          totalQuantity: qty,
+          totalPrice: price,
+          verifiedUnitPrice: verified,
+        });
+      }
+    });
+
+    // 2. Incorporate all individual order lines to guarantee no dish (including custom dishes) is omitted
+    rawOrders.forEach((order) => {
+      const name = (order.itemName ?? order.name ?? "").trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      const qty = Number(order.quantity ?? 1);
+      const lineCost =
+        typeof order.lineTotal === "number"
+          ? order.lineTotal
+          : Number(order.priceAtOrder ?? order.price ?? 0) * qty;
+      const verified =
+        typeof order.verifiedPrice === "number" && order.verifiedPrice > 0
+          ? order.verifiedPrice
+          : undefined;
+
+      const existing = map.get(key);
+      if (existing) {
+        if (existing.totalQuantity === 0) {
+          existing.totalQuantity = qty;
+          existing.totalPrice = lineCost;
+        }
+        if (verified && (!existing.verifiedUnitPrice || existing.verifiedUnitPrice <= 0)) {
+          existing.verifiedUnitPrice = verified;
+        }
+      } else {
+        map.set(key, {
+          itemName: name,
+          totalQuantity: qty,
+          totalPrice: lineCost,
+          verifiedUnitPrice: verified,
+        });
+      }
+    });
+
+    const derivedItems = Array.from(map.values());
+
+    const userIds = new Set(rawOrders.map((o) => o.userId).filter(Boolean));
+    const derivedParticipantCount =
+      typeof summary?.participantCount === "number" && summary.participantCount >= 0
+        ? summary.participantCount
+        : userIds.size;
+
+    return {
+      items: derivedItems,
+      orderLines: rawOrders,
+      participantCount: derivedParticipantCount,
+    };
+  }, [summary]);
+
+  // Group raw order lines per participant for quick reference while entering prices
   const participants = useMemo(() => {
     const grouped = new Map<
       number,
@@ -115,7 +243,7 @@ export default function Page() {
       entry.subtotal +=
         typeof order.lineTotal === "number"
           ? order.lineTotal
-          : order.priceAtOrder * order.quantity;
+          : Number(order.priceAtOrder ?? order.price ?? 0) * Number(order.quantity ?? 1);
 
       grouped.set(order.userId, entry);
     });
@@ -123,9 +251,7 @@ export default function Page() {
     return Array.from(grouped.values()).sort((a, b) => b.subtotal - a.subtotal);
   }, [orderLines]);
 
-  // Default price per ordered item: the verified menu price when it exists,
-  // otherwise the average price the team paid. Admin edits live in overrides,
-  // so every default stays derived and no effect has to sync state.
+  // Default price per ordered item: verified menu price if available, else average paid
   const defaultPrices = useMemo(() => {
     const map: Record<string, number> = {};
 
@@ -146,12 +272,11 @@ export default function Page() {
     return defaultPrices[priceKey(itemName)] ?? 0;
   };
 
-  const watchedDeliveryFee = watch("deliveryFee");
   const deliveryFee =
     typeof watchedDeliveryFee === "number" && !Number.isNaN(watchedDeliveryFee)
       ? watchedDeliveryFee
       : Number(room?.totalDeliveryFee ?? 0);
-  const watchedReceiptTotal = watch("receiptTotal");
+
   const receiptTotalInput =
     typeof watchedReceiptTotal === "string"
       ? watchedReceiptTotal
@@ -170,17 +295,11 @@ export default function Page() {
     receiptTotalInput.trim() !== "" && Number.isFinite(parsedReceiptTotal)
       ? parsedReceiptTotal
       : computedTotal;
-  const difference = receiptTotal - computedTotal;
-  const totalsMatch = Math.abs(difference) < 0.01;
 
   const unpricedItems = items.filter((item) => !(priceFor(item.itemName) > 0));
 
   const isOpen = room?.status === "OPEN";
   const isFinalized = room?.status === "APPROVED_AND_CLOSED";
-  const perPerson =
-    summary?.participantCount && summary.participantCount > 0
-      ? receiptTotal / summary.participantCount
-      : null;
 
   const handlePriceChange = (itemName: string, value: string) => {
     const parsed = Number(value);
@@ -193,7 +312,7 @@ export default function Page() {
   };
 
   const handlePreview = async () => {
-    if (!Number.isFinite(roomId)) return;
+    if (!Number.isFinite(roomId) || items.length === 0) return;
     setPreviewing(true);
     await dispatch(fetchBillPreview({ roomId, totalDelivery: deliveryFee }));
     setPreviewing(false);
@@ -223,7 +342,7 @@ export default function Page() {
 
     if (enterReceipt.fulfilled.match(result)) {
       setSuccess(
-        "Receipt saved. The room is now pending final approval and the split is ready.",
+        "Receipt saved successfully. The bill split is ready and the room is pending approval.",
       );
       await dispatch(fetchRoomById(roomId));
     }
@@ -232,12 +351,8 @@ export default function Page() {
   return (
     <>
       <TopBar
-        title={room ? `Receipt · ${room.restaurantName}` : "Enter receipt"}
-        subtitle={
-          room
-            ? `Enter the paper receipt for the room opened ${formatDateTime(room.createdAt)}`
-            : "Loading room details…"
-        }
+        title="Receipt & Bill"
+        subtitle="Enter the prices from the paper receipt and review the split before approval."
         tag="ADMIN OPS"
         actions={
           <Link
@@ -253,63 +368,113 @@ export default function Page() {
         }
       />
 
-      <PageContainer className="pb-10">
-        <div className="mb-5 flex flex-col gap-2 rounded-[24px] border border-slate-200 bg-white p-2 shadow-sm sm:flex-row sm:items-center">
-          <div className={`${stepBase} bg-emerald-50`}>
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
-              1
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-emerald-800">Enter receipt</p>
-              <p className="text-xs text-emerald-700">
-                Type the real price printed on the paper receipt.
-              </p>
+      <PageContainer className="pb-12">
+        {/* Workflow steps visual guide */}
+        <div className="mb-6 rounded-[24px] border border-slate-200/80 bg-white p-3 shadow-2xs">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="flex items-center gap-2.5 rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-xs font-bold text-white">
+                1
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold leading-tight">Enter prices</p>
+                <p className="text-[10px] text-emerald-700 leading-tight">From paper receipt</p>
+              </div>
             </div>
-          </div>
 
-          <FiArrowRight
-            size={16}
-            className="hidden shrink-0 text-slate-300 sm:block"
-          />
+            <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2 text-slate-700">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-xs font-bold text-slate-700">
+                2
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold leading-tight">Reconciliation</p>
+                <p className="text-[10px] text-slate-500 leading-tight">Verify totals match</p>
+              </div>
+            </div>
 
-          <div className={stepBase}>
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-500">
-              2
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-700">Approve &amp; close</p>
-              <p className="text-xs text-slate-500">
-                Confirm the split and finalize the room.
-              </p>
+            <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2 text-slate-700">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-xs font-bold text-slate-700">
+                3
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold leading-tight">Review split</p>
+                <p className="text-[10px] text-slate-500 leading-tight">Per-user breakdown</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 rounded-xl bg-slate-50 px-3 py-2 text-slate-700">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-xs font-bold text-slate-700">
+                4
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold leading-tight">Save receipt</p>
+                <p className="text-[10px] text-slate-500 leading-tight">Send to approval</p>
+              </div>
             </div>
           </div>
         </div>
 
         {isOpen ? (
-          <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-800 shadow-sm">
-            This room is still OPEN. You can enter the receipt now, but orders may
-            still arrive and change the totals.
+          <div className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 shadow-2xs">
+            <FiAlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+            <span>
+              This room is currently <strong>OPEN</strong>. Orders may still arrive and change item quantities.
+            </span>
           </div>
         ) : null}
 
-        {roomError || orderError || billingError ? (
-          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {roomError || orderError || billingError}
+        {!dismissedError && (roomError || orderError || billingError) ? (
+          <div className="mb-5 flex items-start justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 text-sm text-rose-800 shadow-2xs">
+            <div className="flex items-start gap-2.5">
+              <FiAlertTriangle className="h-5 w-5 shrink-0 text-rose-600 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-rose-900">
+                  {billingError && billingError.toLowerCase().includes("no orders")
+                    ? "Room has no orders"
+                    : "Unable to process receipt"}
+                </p>
+                <p className="text-sm font-medium text-rose-700">
+                  {billingError && billingError.toLowerCase().includes("no orders")
+                    ? "Cannot calculate a bill for a room with no orders. Team members must place orders in the room before a receipt can be finalized and split."
+                    : (roomError || orderError || billingError)}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setDismissedError(true);
+                dispatch(clearBillingError());
+                dispatch(clearOrderError());
+                dispatch(clearRoomError());
+              }}
+              className="text-rose-400 hover:text-rose-700 p-1 cursor-pointer rounded-lg hover:bg-rose-100/60 transition"
+              aria-label="Dismiss error"
+            >
+              <FiX size={16} />
+            </button>
           </div>
         ) : null}
 
         {success ? (
-          <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            <FiCheckCircle size={16} className="mt-0.5 shrink-0" />
-            <span>{success}</span>
+          <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-sm text-emerald-800 shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <FiCheckCircle className="h-5 w-5 shrink-0 text-emerald-600" />
+              <span className="font-semibold">{success}</span>
+            </div>
+            <Link href={`/admin/rooms/${roomId}/approval`}>
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+                <span>Continue to approval</span>
+                <FiArrowRight size={14} className="ml-1.5" />
+              </Button>
+            </Link>
           </div>
         ) : null}
 
-
         {loading ? (
           <div className="space-y-4">
-            <div className="h-40 animate-pulse rounded-[30px] bg-slate-100" />
-            <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+            <div className="h-44 animate-pulse rounded-[30px] bg-slate-100" />
+            <div className="grid gap-6 lg:grid-cols-[1.55fr_1fr]">
               <div className="h-96 animate-pulse rounded-[30px] bg-slate-100" />
               <div className="h-96 animate-pulse rounded-[30px] bg-slate-100" />
             </div>
@@ -317,7 +482,7 @@ export default function Page() {
         ) : !room ? (
           <EmptyState
             title="Room not found"
-            description="This room could not be loaded, so the receipt cannot be entered."
+            description="The requested room could not be loaded."
             action={
               <Link href="/admin/admin-dashboard">
                 <Button size="sm">Back to dashboard</Button>
@@ -325,580 +490,631 @@ export default function Page() {
             }
           />
         ) : (
-          <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-            <section className="space-y-5">
-              <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                      Receipt entry
-                    </p>
-                    <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                      {room.restaurantName}
-                    </h2>
-                    <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                      {room.description || "No room description added yet."}
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-1.5">
-                        <FiClock size={14} className="text-slate-400" />
-                        Opened {formatDateTime(room.createdAt)}
-                      </span>
-                      {room.createdByName ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <FiUsers size={14} className="text-slate-400" />
-                          Opened by {room.createdByName}
-                        </span>
-                      ) : null}
-                      {room.restaurantPhone ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <FiFileText size={14} className="text-slate-400" />
-                          {room.restaurantPhone}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <StatusChip status={room.status} className="text-sm" />
-                </div>
-
-                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-                      Participants
-                    </p>
-                    <p className="mt-2 text-xl font-bold tabular-nums text-slate-900">
-                      {typeof summary?.participantCount === "number"
-                        ? summary.participantCount
-                        : "—"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-                      Ordered items
-                    </p>
-                    <p className="mt-2 inline-flex items-center gap-2 text-xl font-bold tabular-nums text-slate-900">
-                      <FiShoppingBag size={16} className="text-slate-400" />
-                      {items.length}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-                      Food as ordered
-                    </p>
-                    <p className="mt-2 text-xl font-bold tabular-nums text-slate-900">
-                      {formatMoney(summary?.foodTotal)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-                      Menu prices
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-slate-900">
-                      {summary?.pricesVerified
-                        ? "Verified — used as defaults"
-                        : "Not verified — receipt required"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-
-              <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
+          <div className="space-y-6">
+            {/* Room Information Card */}
+            <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                      <LuUtensils size={13} />
+                      Room #{room.id}
+                    </span>
+                    <span className="text-xs text-slate-400 font-medium">·</span>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      Receipt items
-                    </p>
-                    <h3 className="mt-1 text-xl font-bold text-slate-900">
-                      Match every ordered item
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Prices start from the verified menu price and fall back to what
-                      the team paid. Override them with the values on the receipt.
+                      Financial Entry
                     </p>
                   </div>
 
-                  <div className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                    <FiShoppingBag size={12} />
-                    {items.length} line{items.length === 1 ? "" : "s"}
-                  </div>
-                </div>
+                  <h2 className="mt-2 text-2xl font-bold text-slate-900">
+                    {room.restaurantName}
+                  </h2>
 
-                {items.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                    Nobody ordered anything in this room yet, so there is no receipt to
-                    enter.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[620px] text-left text-sm">
-                      <thead>
-                        <tr className="border-b border-slate-100 text-xs uppercase tracking-wider text-slate-400">
-                          <th className="px-2 py-3 font-medium">Item</th>
-                          <th className="px-2 py-3 text-right font-medium">Qty</th>
-                          <th className="px-2 py-3 text-right font-medium">
-                            Ordered total
-                          </th>
-                          <th className="px-2 py-3 text-right font-medium">
-                            Receipt price
-                          </th>
-                          <th className="px-2 py-3 text-right font-medium">
-                            Line total
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((item) => {
-                          const key = priceKey(item.itemName);
-                          const quantity = Number(item.totalQuantity ?? 0);
-                          const unitPrice = priceFor(item.itemName);
+                  {room.description ? (
+                    <p className="mt-1 text-sm text-slate-600 max-w-2xl">
+                      {room.description}
+                    </p>
+                  ) : null}
 
-                          return (
-                            <tr
-                              key={key}
-                              className="border-b border-slate-50 last:border-0"
-                            >
-                              <td className="px-2 py-3">
-                                <p className="font-medium text-slate-900">
-                                  {item.itemName}
-                                </p>
-                                {unitPrice <= 0 ? (
-                                  <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-amber-600">
-                                    <FiAlertTriangle size={12} />
-                                    Needs a price
-                                  </p>
-                                ) : null}
-                              </td>
-                              <td className="px-2 py-3 text-right tabular-nums text-slate-600">
-                                {quantity}
-                              </td>
-                              <td className="px-2 py-3 text-right tabular-nums text-slate-500">
-                                {formatMoney(item.totalPrice)}
-                              </td>
-                              <td className="px-2 py-3">
-                                <label className="ml-auto flex w-32 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
-                                  <FiDollarSign
-                                    size={13}
-                                    className="shrink-0 text-slate-400"
-                                  />
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    disabled={isFinalized}
-                                    value={unitPrice}
-                                    onChange={(event) =>
-                                      handlePriceChange(
-                                        item.itemName,
-                                        event.target.value,
-                                      )
-                                    }
-                                    aria-label={`Receipt price for ${item.itemName}`}
-                                    className="w-full border-0 bg-transparent text-right text-sm tabular-nums text-slate-900 outline-none disabled:cursor-not-allowed disabled:text-slate-400"
-                                  />
-                                </label>
-                              </td>
-                              <td className="px-2 py-3 text-right font-semibold tabular-nums text-slate-900">
-                                {formatMoney(quantity * unitPrice)}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-
-              <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                <div className="mb-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Receipt totals
-                  </p>
-                  <h3 className="mt-1 text-xl font-bold text-slate-900">
-                    Delivery fee &amp; printed total
-                  </h3>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <span className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-                      <FiTruck size={14} />
-                      Delivery fee
+                  <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500">
+                    <span className="inline-flex items-center gap-1.5">
+                      <FiClock size={13} className="text-slate-400" />
+                      Opened {formatDateTime(room.createdAt)}
                     </span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="10000"
-                      step="0.01"
-                      disabled={isFinalized}
-                      {...register("deliveryFee", { valueAsNumber: true })}
-                      className="w-full border-0 bg-transparent text-lg font-bold tabular-nums text-slate-900 outline-none disabled:cursor-not-allowed disabled:text-slate-400"
-                    />
-                  </label>
-
-                  <label className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <span className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-                      <FiFileText size={14} />
-                      Printed receipt total
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="1000000"
-                      step="0.01"
-                      disabled={isFinalized}
-                      placeholder={computedTotal.toFixed(2)}
-                      {...register("receiptTotal")}
-                      className="w-full border-0 bg-transparent text-lg font-bold tabular-nums text-slate-900 outline-none placeholder:font-normal placeholder:text-slate-400 disabled:cursor-not-allowed disabled:text-slate-400"
-                    />
-                  </label>
+                    {room.createdByName ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <FiUsers size={13} className="text-slate-400" />
+                        Opened by {room.createdByName}
+                      </span>
+                    ) : null}
+                    {room.restaurantPhone ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <FiFileText size={13} className="text-slate-400" />
+                        {room.restaurantPhone}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
 
-                <div
-                  className={`mt-4 flex items-start gap-3 rounded-2xl px-4 py-3 text-sm ${
-                    totalsMatch
-                      ? "border border-emerald-100 bg-emerald-50 text-emerald-800"
-                      : "border border-amber-100 bg-amber-50 text-amber-800"
-                  }`}
-                >
-                  {totalsMatch ? (
-                    <FiCheckCircle size={16} className="mt-0.5 shrink-0" />
-                  ) : (
-                    <FiAlertTriangle size={16} className="mt-0.5 shrink-0" />
-                  )}
-                  <span>
-                    {totalsMatch
-                      ? `Receipt total matches the computed total (${formatMoney(computedTotal)}).`
-                      : `The receipt total differs from the computed total by ${formatMoney(
-                          Math.abs(difference),
-                        )} — the server reports this as a reconciliation delta.`}
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <StatusChip status={room.status} className="text-sm" />
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {items.length} unique ordered {items.length === 1 ? "item" : "items"}
                   </span>
                 </div>
               </div>
-            </section>
+
+              {/* Room Quick Metrics */}
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Participants
+                  </p>
+                  <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                    {participantCount}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Distinct Items
+                  </p>
+                  <p className="mt-1 inline-flex items-center gap-1.5 text-xl font-bold tabular-nums text-slate-900">
+                    <FiShoppingBag size={16} className="text-slate-400" />
+                    {items.length}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Food as Ordered
+                  </p>
+                  <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                    {formatMoney(
+                      typeof summary?.foodTotal === "number"
+                        ? summary.foodTotal
+                        : foodSubtotal,
+                    )}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Menu Defaults
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-slate-800">
+                    {summary?.pricesVerified
+                      ? "Verified menu prices loaded"
+                      : "Receipt input required"}
+                  </p>
+                </div>
+              </div>
+            </div>
 
 
-            <aside className="space-y-4">
-              <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Live totals
-                </p>
-                <h3 className="mt-1 text-xl font-bold text-slate-900">
-                  What will be split
-                </h3>
 
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
-                    <span>Food subtotal</span>
-                    <span className="font-semibold tabular-nums text-slate-900">
-                      {formatMoney(foodSubtotal)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
-                    <span>Delivery fee</span>
-                    <span className="font-semibold tabular-nums text-slate-900">
-                      {formatMoney(deliveryFee)}
-                    </span>
-                  </div>
-
-                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-3">
-                    <div className="flex items-center justify-between text-sm text-emerald-800">
-                      <span>Grand total</span>
-                      <span className="text-lg font-bold tabular-nums">
-                        {formatMoney(receiptTotal)}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 flex items-center justify-between text-xs text-emerald-700">
-                      <span>Per person</span>
-                      <span className="font-semibold tabular-nums">
-                        {perPerson === null ? "—" : formatMoney(perPerson)}
-                      </span>
+            {/* Unpriced Items Warning Block */}
+            {unpricedItems.length > 0 ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 shadow-2xs">
+                <div className="flex items-start gap-3">
+                  <FiAlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+                  <div className="space-y-1.5">
+                    <h4 className="text-sm font-bold text-amber-900">
+                      Items still missing a receipt price ({unpricedItems.length})
+                    </h4>
+                    <p className="text-xs text-amber-800">
+                      Please enter the unit price for each item below before saving. The server requires all ordered items to have a verified price.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {unpricedItems.map((item) => (
+                        <span
+                          key={item.itemName}
+                          className="inline-flex items-center rounded-lg border border-amber-200 bg-white/80 px-2.5 py-1 text-xs font-medium text-amber-900 shadow-2xs"
+                        >
+                          {item.itemName}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 </div>
+              </div>
+            ) : null}
 
-                <div className="mt-4">
+            {/* Main Operational Two-Column Layout */}
+            <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+              {/* Left Column: Receipt Items & Totals */}
+              <div className="space-y-6">
+                {/* Receipt Items Section */}
+                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6 space-y-5">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">
+                        Receipt items
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Enter the price shown on the paper receipt for each ordered item.
+                      </p>
+                    </div>
+
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 self-start sm:self-auto">
+                      <LuReceipt size={13} />
+                      <span>{items.length} distinct {items.length === 1 ? "dish" : "dishes"}</span>
+                    </div>
+                  </div>
+
+                  {items.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-8 text-center space-y-2">
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                        <FiShoppingBag size={22} />
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800">
+                        No orders placed in this room
+                      </h4>
+                      <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                        {isOpen
+                          ? "This room is currently OPEN. Room participants must add items and submit orders before a paper receipt can be entered and split."
+                          : "This room was closed with 0 participant orders. The server requires at least one order to calculate and split a bill."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3.5">
+                      {items.map((item, index) => {
+                        const key = priceKey(item.itemName);
+                        const quantity = Number(item.totalQuantity ?? 0);
+                        const unitPrice = priceFor(item.itemName);
+                        const lineTotal = quantity * unitPrice;
+                        const isMissingPrice = unitPrice <= 0;
+
+                        return (
+                          <div
+                            key={key}
+                            className={`rounded-2xl border p-4 shadow-2xs transition ${
+                              isMissingPrice
+                                ? "border-amber-200 bg-amber-50/30"
+                                : "border-slate-200 bg-white hover:border-slate-300"
+                            }`}
+                          >
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              {/* Left: Item Information */}
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-base font-bold text-slate-900">
+                                    {item.itemName}
+                                  </h4>
+                                  <span className="inline-flex items-center rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
+                                    Qty {quantity}
+                                  </span>
+                                  {isMissingPrice ? (
+                                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                                      <FiAlertTriangle size={11} />
+                                      Needs price
+                                    </span>
+                                  ) : null}
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                                  <span>
+                                    Ordered total:{" "}
+                                    <strong className="text-slate-700">
+                                      {formatMoney(item.totalPrice)}
+                                    </strong>
+                                  </span>
+                                  {Number(item.verifiedUnitPrice ?? 0) > 0 ? (
+                                    <span>
+                                      · Menu verified:{" "}
+                                      <strong className="text-slate-700">
+                                        {formatMoney(item.verifiedUnitPrice)}
+                                      </strong>
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </div>
+
+                              {/* Right: Receipt Price Input & Line Total */}
+                              <div className="flex items-center gap-4 self-end sm:self-auto">
+                                <div className="w-36">
+                                  <label
+                                    htmlFor={`price-input-${index}`}
+                                    className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400"
+                                  >
+                                    Receipt price
+                                  </label>
+                                  <div
+                                    className={`relative flex items-center rounded-xl border px-3 py-1.5 transition ${
+                                      isMissingPrice
+                                        ? "border-amber-300 bg-white ring-2 ring-amber-100"
+                                        : "border-slate-200 bg-slate-50 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-100"
+                                    }`}
+                                  >
+                                    <span className="mr-1 text-xs font-bold text-slate-400">
+                                      EGP
+                                    </span>
+                                    <input
+                                      id={`price-input-${index}`}
+                                      type="number"
+                                      min="0"
+                                      max="100000"
+                                      step="0.01"
+                                      disabled={isFinalized}
+                                      value={unitPrice || ""}
+                                      placeholder="0.00"
+                                      onChange={(e) =>
+                                        handlePriceChange(
+                                          item.itemName,
+                                          e.target.value,
+                                        )
+                                      }
+                                      aria-label={`Receipt price for ${item.itemName}`}
+                                      className="w-full bg-transparent text-right text-sm font-bold tabular-nums text-slate-900 outline-none disabled:cursor-not-allowed disabled:text-slate-400"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="min-w-[90px] text-right">
+                                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                    Line total
+                                  </span>
+                                  <span className="text-sm font-bold tabular-nums text-slate-900">
+                                    {formatMoney(lineTotal)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Optional Reference: Restaurant Menu Catalog */}
+                  {menu && menu.length > 0 ? (
+                    <div className="mt-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+                      <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/60">
+                        <div className="flex items-center gap-2">
+                          <LuUtensils className="text-slate-500" size={14} />
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                            Restaurant Menu Catalog ({menu.length} {menu.length === 1 ? "dish" : "dishes"})
+                          </h4>
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-medium">Reference only</span>
+                      </div>
+                      <p className="text-xs text-slate-500 mb-3">
+                        These dishes are registered in this restaurant’s menu catalog. Only items actually ordered by room members appear in the receipt above.
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {menu.map((dish) => (
+                          <div
+                            key={dish.id ?? dish.name}
+                            className="flex items-center justify-between rounded-xl border border-slate-200/60 bg-white px-3 py-2 text-xs shadow-2xs"
+                          >
+                            <span className="font-semibold text-slate-800 truncate">{dish.name}</span>
+                            <span className="font-bold tabular-nums text-slate-600 shrink-0">
+                              {formatMoney(dish.verifiedPrice ?? dish.price ?? 0)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Receipt Totals Section */}
+                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6 space-y-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">
+                      Receipt totals
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Specify the delivery fee and the printed total written on the paper receipt.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-4">
+                      <label
+                        htmlFor="delivery-fee-field"
+                        className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700"
+                      >
+                        <FiTruck size={14} className="text-slate-400" />
+                        Delivery fee
+                      </label>
+                      <div className="relative flex items-center rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+                        <span className="text-xs font-bold text-slate-400 mr-2">
+                          EGP
+                        </span>
+                        <input
+                          id="delivery-fee-field"
+                          type="number"
+                          min="0"
+                          max="10000"
+                          step="0.01"
+                          disabled={isFinalized}
+                          {...register("deliveryFee", { valueAsNumber: true })}
+                          className="w-full bg-transparent text-base font-bold tabular-nums text-slate-900 outline-none disabled:cursor-not-allowed disabled:text-slate-400"
+                        />
+                      </div>
+                      <p className="mt-1.5 text-[11px] text-slate-500">
+                        Divided equally among all active participants.
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-4">
+                      <label
+                        htmlFor="receipt-total-field"
+                        className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700"
+                      >
+                        <FiFileText size={14} className="text-slate-400" />
+                        Printed receipt total
+                      </label>
+                      <div className="relative flex items-center rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+                        <span className="text-xs font-bold text-slate-400 mr-2">
+                          EGP
+                        </span>
+                        <input
+                          id="receipt-total-field"
+                          type="number"
+                          min="0"
+                          max="1000000"
+                          step="0.01"
+                          disabled={isFinalized}
+                          placeholder={computedTotal.toFixed(2)}
+                          {...register("receiptTotal")}
+                          className="w-full bg-transparent text-base font-bold tabular-nums text-slate-900 outline-none placeholder:font-normal placeholder:text-slate-400 disabled:cursor-not-allowed disabled:text-slate-400"
+                        />
+                      </div>
+                      <p className="mt-1.5 text-[11px] text-slate-500">
+                        The total written on the paper receipt.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Summary Comparison */}
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3.5 text-xs text-slate-600">
+                    <div className="flex items-center justify-between py-1">
+                      <span>Food subtotal (sum of items):</span>
+                      <strong className="text-slate-800 tabular-nums">{formatMoney(foodSubtotal)}</strong>
+                    </div>
+                    <div className="flex items-center justify-between py-1">
+                      <span>Delivery fee:</span>
+                      <strong className="text-slate-800 tabular-nums">{formatMoney(deliveryFee)}</strong>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-slate-200/60 pt-1.5 mt-1 font-semibold">
+                      <span className="text-slate-800">Expected computed total:</span>
+                      <strong className="text-slate-900 tabular-nums">{formatMoney(computedTotal)}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Live Split Preview & Final Action */}
+              <div className="space-y-6">
+                {/* Live Split Preview Card */}
+                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6 space-y-4">
+                  <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3.5">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900">
+                        Live Split Preview
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Food is charged to whoever ordered it; delivery is divided equally among people with orders.
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        bill?.pricesVerified
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-slate-100 text-slate-700"
+                      }`}
+                    >
+                      {bill?.pricesVerified ? "Verified" : "Draft preview"}
+                    </span>
+                  </div>
+
+                  {/* Live Figures */}
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-slate-600">
+                      <span>Food total</span>
+                      <span className="font-bold tabular-nums text-slate-900">
+                        {formatMoney(bill ? bill.totalFoodCost : foodSubtotal)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-slate-600">
+                      <span>Delivery share / person</span>
+                      <span className="font-bold tabular-nums text-slate-900">
+                        {formatMoney(
+                          bill
+                            ? bill.deliverySharePerPerson
+                            : participantCount > 0
+                            ? deliveryFee / participantCount
+                            : summary?.participantCount
+                            ? deliveryFee / summary.participantCount
+                            : deliveryFee,
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5 text-emerald-900">
+                      <span className="font-bold">Grand total</span>
+                      <span className="text-base font-extrabold tabular-nums">
+                        {formatMoney(bill ? bill.grandTotal : receiptTotal)}
+                      </span>
+                    </div>
+                  </div>
+
                   <Button
                     fullWidth
                     size="sm"
                     variant="secondary"
                     onClick={handlePreview}
-                    disabled={previewing || !Number.isFinite(roomId)}
+                    disabled={previewing || !Number.isFinite(roomId) || items.length === 0}
+                    className="cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center gap-2 text-xs font-semibold">
                       <FiRefreshCw
-                        size={14}
+                        size={13}
                         className={previewing ? "animate-spin" : ""}
                       />
-                      {previewing ? "Previewing…" : "Preview server split"}
-                    </span>
-                  </Button>
-                  <p className="mt-2 text-xs text-slate-400">
-                    Estimates above are computed in the browser. Previewing asks the
-                    server for the authoritative split.
-                  </p>
-                </div>
-              </div>
-
-
-              {bill ? (
-                <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                        Server split
-                      </p>
-                      <h3 className="mt-1 text-lg font-bold text-slate-900">
-                        Authoritative preview
-                      </h3>
-                    </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                        bill.pricesVerified
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-amber-50 text-amber-700"
-                      }`}
-                    >
-                      {bill.pricesVerified ? "Verified" : "Not verified"}
-                    </span>
-                  </div>
-
-                  <div className="mt-4 space-y-2 text-sm text-slate-600">
-                    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
-                      <span>Food cost</span>
-                      <span className="font-semibold tabular-nums text-slate-900">
-                        {formatMoney(bill.totalFoodCost)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
-                      <span>Delivery / person</span>
-                      <span className="font-semibold tabular-nums text-slate-900">
-                        {formatMoney(bill.deliverySharePerPerson)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
-                      <span>Grand total</span>
-                      <span className="font-semibold tabular-nums text-slate-900">
-                        {formatMoney(bill.grandTotal)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <ul className="mt-4 space-y-2">
-                    {(bill.breakdown ?? []).map((entry) => (
-                      <li
-                        key={entry.userId}
-                        className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2 text-sm"
-                      >
-                        <span className="truncate text-slate-700">
-                          {entry.userName || `User #${entry.userId}`}
-                        </span>
-                        <span className="font-semibold tabular-nums text-slate-900">
-                          {formatMoney(entry.finalTotal)}
-                        </span>
-                      </li>
-                    ))}
-                    {!bill.breakdown || bill.breakdown.length === 0 ? (
-                      <li className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-500">
-                        No per-person split returned yet.
-                      </li>
-                    ) : null}
-                  </ul>
-                </div>
-              ) : null}
-
-
-              <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Finalize
-                </p>
-                <h3 className="mt-1 text-xl font-bold text-slate-900">
-                  Save the receipt
-                </h3>
-                <p className="mt-2 text-sm text-slate-500">
-                  Splits the bill with the delivery fee, stores the verified prices and
-                  moves the room to PENDING_ADMIN_APPROVAL.
-                </p>
-
-                {unpricedItems.length > 0 ? (
-                  <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
-                    {unpricedItems.length} item
-                    {unpricedItems.length === 1 ? "" : "s"} still have no price:{" "}
-                    {unpricedItems.map((item) => item.itemName).join(", ")}. They come
-                    back as unpriced items.
-                  </div>
-                ) : null}
-
-                {isFinalized ? (
-                  <div className="mt-4 flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-                    <FiInfo size={14} className="mt-0.5 shrink-0" />
-                    <span>
-                      This room is approved and closed, so the receipt can no longer be
-                      changed.
-                    </span>
-                  </div>
-                ) : null}
-
-                <div className="mt-4 space-y-3">
-                  <Button
-                    fullWidth
-                    size="lg"
-                    onClick={handleSubmit}
-                    disabled={
-                      submitting ||
-                      items.length === 0 ||
-                      isFinalized ||
-                      !Number.isFinite(roomId)
-                    }
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <FiSave size={16} />
-                      {submitting ? "Saving receipt…" : "Save receipt & split bill"}
+                      {previewing ? "Previewing…" : "Refresh server split"}
                     </span>
                   </Button>
 
-                  <Link
-                    href={`/admin/rooms/${
-                      Number.isFinite(roomId) ? roomId : ""
-                    }/approval`}
-                    className="block"
-                  >
-                    <Button fullWidth variant="ghost">
-                      <span className="inline-flex items-center gap-2">
-                        <FiArrowRight size={14} />
-                        Continue to approval
-                      </span>
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+                  {/* Participant Breakdown */}
+                  <div className="space-y-2 pt-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Participant Breakdown
+                    </p>
 
-
-              {receiptDraft ? (
-                <div className="rounded-[30px] border border-emerald-200 bg-emerald-50/70 p-5 shadow-sm sm:p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-                        Receipt saved
-                      </p>
-                      <h3 className="mt-1 text-lg font-bold text-emerald-900">
-                        Split is ready
-                      </h3>
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {bill?.breakdown && bill.breakdown.length > 0 ? (
+                        bill.breakdown.map((entry) => (
+                          <div
+                            key={entry.userId}
+                            className="rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 text-xs space-y-1"
+                          >
+                            <div className="flex items-center justify-between font-bold text-slate-800">
+                              <span className="truncate">
+                                {entry.userName || `User #${entry.userId}`}
+                              </span>
+                              <span className="tabular-nums text-emerald-800">
+                                {formatMoney(entry.finalTotal)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] text-slate-500">
+                              <span>Food: {formatMoney(entry.foodSubtotal)}</span>
+                              <span>Delivery: {formatMoney(entry.deliveryShare)}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : participants.length > 0 ? (
+                        participants.map((p) => {
+                          const estimatedDeliveryShare =
+                            participants.length > 0
+                              ? deliveryFee / participants.length
+                              : 0;
+                          return (
+                            <div
+                              key={p.userId}
+                              className="rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 text-xs space-y-1"
+                            >
+                              <div className="flex items-center justify-between font-bold text-slate-800">
+                                <span className="truncate">{p.name}</span>
+                                <span className="tabular-nums text-slate-900">
+                                  {formatMoney(p.subtotal + estimatedDeliveryShare)}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                                <span>{p.lines.length} {p.lines.length === 1 ? "item" : "items"}</span>
+                                <span>Est. delivery: {formatMoney(estimatedDeliveryShare)}</span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-400 italic text-center">
+                          No participants yet.
+                        </p>
+                      )}
                     </div>
-                    <StatusChip status={receiptDraft.status} />
+                  </div>
+                </div>
+
+                {/* Primary Action Card */}
+                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6 space-y-4">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Finalize &amp; Submit
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Saves the receipt prices, computes the participant split, and moves the room into the pending approval workflow.
+                    </p>
                   </div>
 
-                  <dl className="mt-4 space-y-2 text-sm text-emerald-900">
-                    <div className="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2">
-                      <dt>Grand total</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {formatMoney(receiptDraft.bill?.grandTotal)}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2">
-                      <dt>Participants</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {typeof receiptDraft.bill?.participantCount === "number"
-                          ? receiptDraft.bill.participantCount
-                          : "—"}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2">
-                      <dt>Delivery / person</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {formatMoney(receiptDraft.bill?.deliverySharePerPerson)}
-                      </dd>
-                    </div>
-                    <div className="flex items-center justify-between rounded-xl bg-white/70 px-3 py-2">
-                      <dt>Reconciliation delta</dt>
-                      <dd className="font-semibold tabular-nums">
-                        {formatMoney(receiptDraft.reconciliationDelta)}
-                      </dd>
-                    </div>
-                  </dl>
-
-                  {receiptDraft.unpricedItems &&
-                  receiptDraft.unpricedItems.length > 0 ? (
-                    <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
-                      The server reported {receiptDraft.unpricedItems.length} unpriced
-                      item(s): {receiptDraft.unpricedItems.join(", ")}.
+                  {isFinalized ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 flex items-start gap-2">
+                      <FiInfo size={14} className="mt-0.5 shrink-0 text-slate-400" />
+                      <span>This room is already approved and closed. The receipt cannot be changed.</span>
                     </div>
                   ) : null}
 
-                  <div className="mt-4">
-                    <Link href={`/admin/rooms/${roomId}/approval`} className="block">
-                      <Button fullWidth variant="secondary">
-                        <span className="inline-flex items-center gap-2">
-                          Go to approval
+                  <div className="space-y-2.5 pt-1">
+                    <Button
+                      fullWidth
+                      size="lg"
+                      onClick={handleSubmit}
+                      disabled={
+                        submitting ||
+                        items.length === 0 ||
+                        isFinalized ||
+                        !Number.isFinite(roomId)
+                      }
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 shadow-sm cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <FiSave size={16} />
+                        {submitting ? "Saving receipt…" : "Save receipt & split bill"}
+                      </span>
+                    </Button>
+
+                    {items.length === 0 ? (
+                      <p className="text-[11px] text-amber-700 text-center font-medium leading-relaxed bg-amber-50 rounded-xl p-2 border border-amber-200/60">
+                        Cannot save receipt: No participant orders exist in this room.
+                      </p>
+                    ) : null}
+
+                    <Link
+                      href={`/admin/rooms/${Number.isFinite(roomId) ? roomId : ""}/approval`}
+                      className="block"
+                    >
+                      <Button fullWidth variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 cursor-pointer">
+                        <span className="inline-flex items-center gap-1.5">
+                          Continue to approval
                           <FiArrowRight size={14} />
                         </span>
                       </Button>
                     </Link>
                   </div>
                 </div>
-              ) : null}
-              {participants.length > 0 ? (
-                <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Who ordered what
-                  </p>
-                  <h3 className="mt-1 text-lg font-bold text-slate-900">
-                    {participants.length} participant
-                    {participants.length === 1 ? "" : "s"}
-                  </h3>
 
-                  <div className="mt-4 space-y-3">
-                    {participants.map((participant) => (
-                      <div
-                        key={participant.userId}
-                        className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="inline-flex min-w-0 items-center gap-1.5 text-sm font-medium text-slate-800">
-                            <FiUsers size={14} className="shrink-0 text-slate-400" />
-                            <span className="truncate">{participant.name}</span>
-                          </span>
-                          <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
-                            {formatMoney(participant.subtotal)}
-                          </span>
-                        </div>
-
-                        <ul className="mt-2 space-y-1">
-                          {participant.lines.map((line) => (
-                            <li
-                              key={line.id}
-                              className="flex items-center justify-between gap-2 text-xs text-slate-600"
-                            >
-                              <span className="truncate">
-                                {line.quantity} × {line.itemName}
-                              </span>
-                              <span className="shrink-0 tabular-nums">
-                                {formatMoney(
-                                  typeof line.lineTotal === "number"
-                                    ? line.lineTotal
-                                    : line.priceAtOrder * line.quantity,
-                                )}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
+                {/* Saved Receipt Draft Feedback */}
+                {receiptDraft ? (
+                  <div className="rounded-[28px] border border-emerald-200 bg-emerald-50/70 p-5 shadow-2xs space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FiCheckCircle className="text-emerald-700" size={16} />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900">
+                          Receipt Saved on Server
+                        </h4>
                       </div>
-                    ))}
+                      <StatusChip status={receiptDraft.status} />
+                    </div>
+
+                    <div className="space-y-1.5 text-xs text-emerald-950">
+                      <div className="flex items-center justify-between rounded-lg bg-white/70 px-2.5 py-1.5">
+                        <span>Grand total</span>
+                        <strong className="tabular-nums">{formatMoney(receiptDraft.bill?.grandTotal)}</strong>
+                      </div>
+                      <div className="flex items-center justify-between rounded-lg bg-white/70 px-2.5 py-1.5">
+                        <span>Reconciliation delta</span>
+                        <strong className="tabular-nums">{formatMoney(receiptDraft.reconciliationDelta)}</strong>
+                      </div>
+                    </div>
+
+                    <Link href={`/admin/rooms/${roomId}/approval`} className="block pt-1">
+                      <Button fullWidth variant="secondary" size="sm" className="border-emerald-300 text-emerald-900 bg-white hover:bg-emerald-100 cursor-pointer">
+                        <span className="inline-flex items-center gap-1.5 font-bold">
+                          Go to approval
+                          <FiArrowRight size={13} />
+                        </span>
+                      </Button>
+                    </Link>
                   </div>
-                </div>
-              ) : null}
-            </aside>
+                ) : null}
+              </div>
+            </div>
           </div>
         )}
       </PageContainer>
     </>
   );
 }
-

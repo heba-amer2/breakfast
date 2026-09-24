@@ -4,13 +4,34 @@ export type ApiErrorPayload = {
   message?: string;
   error?: string;
   status?: number;
+  fieldErrors?: Record<string, string> | Array<{ field?: string; message?: string }>;
 };
 
 function getMessageFromPayload(parsed: unknown, status: number) {
   if (parsed && typeof parsed === "object") {
-    const payload = parsed as { message?: string; error?: string };
-    if (payload.message) return payload.message;
+    const payload = parsed as {
+      message?: string;
+      error?: string;
+      fieldErrors?: Record<string, string> | Array<{ field?: string; message?: string }>;
+    };
+
+    if (payload.fieldErrors) {
+      if (Array.isArray(payload.fieldErrors)) {
+        const msgs = payload.fieldErrors
+          .map((fe) => (typeof fe === "string" ? fe : fe.message || fe.field))
+          .filter(Boolean);
+        if (msgs.length > 0) return msgs.join(". ");
+      } else if (typeof payload.fieldErrors === "object") {
+        const msgs = Object.entries(payload.fieldErrors)
+          .map(([key, val]) => (val ? `${val}` : key))
+          .filter(Boolean);
+        if (msgs.length > 0) return msgs.join(". ");
+      }
+    }
+
+    if (payload.message && payload.message !== "Validation failed") return payload.message;
     if (payload.error) return payload.error;
+    if (payload.message) return payload.message;
   }
 
   if (status === 401) return "Session expired. Please sign in again.";

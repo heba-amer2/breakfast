@@ -5,7 +5,9 @@ export type OrderItemResponse = {
   userId: number;
   userName?: string;
   itemName: string;
+  name?: string;
   priceAtOrder: number;
+  price?: number;
   verifiedPrice?: number;
   quantity: number;
   lineTotal?: number;
@@ -13,15 +15,21 @@ export type OrderItemResponse = {
 
 export type AggregatedItemResponse = {
   itemName: string;
+  name?: string;
   totalQuantity?: number;
+  quantity?: number;
   totalPrice?: number;
+  price?: number;
   verifiedUnitPrice?: number;
+  verifiedPrice?: number;
 };
 
 export type RoomOrderSummary = {
   roomId?: number;
   aggregatedItems?: AggregatedItemResponse[];
+  items?: AggregatedItemResponse[];
   allOrders?: OrderItemResponse[];
+  orders?: OrderItemResponse[];
   foodTotal?: number;
   participantCount?: number;
   pricesVerified?: boolean;
@@ -51,6 +59,9 @@ const orderSlice = createSlice({
     setOrderSummary: (state, action: PayloadAction<RoomOrderSummary | null>) => {
       state.summary = action.payload;
     },
+    clearOrderSummary: (state) => {
+      state.summary = null;
+    },
     setOrderLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
@@ -63,7 +74,13 @@ const orderSlice = createSlice({
   },
 });
 
-export const { setOrders, setOrderSummary, setOrderLoading, setOrderError, clearOrderError } =
-  orderSlice.actions;
+export const {
+  setOrders,
+  setOrderSummary,
+  clearOrderSummary,
+  setOrderLoading,
+  setOrderError,
+  clearOrderError,
+} = orderSlice.actions;
 
 export default orderSlice.reducer;
