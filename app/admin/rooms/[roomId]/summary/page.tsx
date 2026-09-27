@@ -310,7 +310,7 @@ export default function AdminRoomSummaryPage() {
               </div>
 
               {/* 4 KPI Metrics */}
-              <div className="mt-6 hidden lg:grid lg:grid-cols-4 gap-3">
+              <div className="mt-6 grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
                 <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4 min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 truncate">
                     Participants

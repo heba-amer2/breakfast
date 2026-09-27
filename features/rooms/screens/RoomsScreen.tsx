@@ -152,7 +152,7 @@ export default function RoomsScreen() {
         </div>
 
         {/* Status KPI Cards */}
-        <div className="hidden lg:grid gap-3.5 lg:grid-cols-4">
+        <div className="hidden sm:grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
           {statusCardConfig.map((item) => {
             const count =
               item.status === "OPEN"

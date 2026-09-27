@@ -550,8 +550,8 @@ export default function ApprovalQueueScreen() {
           </div>
         )}
 
-        {/* Metric Cards Overview (Desktop Only) */}
-        <div className="hidden lg:grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+        {/* Metric Cards Overview (Desktop & Tablet) */}
+        <div className="hidden sm:grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Need receipt"
             value={loading ? "—" : unapproved.length}

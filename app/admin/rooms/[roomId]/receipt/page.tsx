@@ -546,7 +546,7 @@ export default function ReceiptEntryPage() {
               </div>
 
               {/* Room Quick Metrics */}
-              <div className="mt-6 hidden lg:grid lg:grid-cols-4 gap-3">
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Participants

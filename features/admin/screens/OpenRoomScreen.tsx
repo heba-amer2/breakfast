@@ -230,7 +230,7 @@ export default function OpenRoomScreen() {
               </p>
             </div>
 
-            <div className="hidden lg:block rounded-2xl sm:rounded-[28px] border border-emerald-200 bg-emerald-600 p-5 sm:p-7 text-white shadow-xs sm:shadow-sm">
+            <div className="hidden sm:block rounded-2xl sm:rounded-[28px] border border-emerald-200 bg-emerald-600 p-5 sm:p-7 text-white shadow-xs sm:shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15">
                   <FiClock size={18} />

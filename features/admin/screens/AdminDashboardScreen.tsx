@@ -113,7 +113,7 @@ export default function AdminDashboardScreen() {
         ) : null}
 
         {/* 4 Operations KPI Cards */}
-        <div className="hidden lg:grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+        <div className="hidden sm:grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Live Rooms Open"
             value={loading ? "—" : openRooms.length}

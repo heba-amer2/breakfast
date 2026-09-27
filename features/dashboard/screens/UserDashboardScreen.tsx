@@ -88,7 +88,7 @@ export default function UserDashboardScreen() {
 
 
         {/* Quick KPI Stat Cards */}
-        <div className="hidden lg:grid gap-4 lg:grid-cols-3">
+        <div className="hidden sm:grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <StatCard
             label="Live Rooms Open"
             value={loading ? "—" : activeCount}

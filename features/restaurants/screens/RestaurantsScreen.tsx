@@ -72,7 +72,7 @@ export default function RestaurantsScreen() {
         ) : null}
 
         {/* Hero stat cards */}
-        <div className="mb-4 sm:mb-6 hidden lg:grid gap-3.5 sm:gap-4 lg:grid-cols-3">
+        <div className="mb-4 sm:mb-6 hidden sm:grid gap-3.5 sm:gap-4 sm:grid-cols-3">
           <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
             <div className="flex items-center justify-between">
               <div>
