@@ -55,16 +55,16 @@ export function RoomsTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] text-left text-sm">
+      <table className="w-full sm:min-w-[600px] lg:min-w-[760px] text-left text-sm">
         <thead>
           <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            <th className="px-5 py-3">Restaurant</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Countdown</th>
-            <th className="px-4 py-3">Creator</th>
-            <th className="px-4 py-3">Menu</th>
-            <th className="px-4 py-3">Opened At</th>
-            <th className="px-5 py-3 text-right">Action</th>
+            <th className="px-3 sm:px-5 py-3">Restaurant</th>
+            <th className="px-3 sm:px-4 py-3">Status</th>
+            <th className="hidden sm:table-cell px-4 py-3">Countdown</th>
+            <th className="hidden md:table-cell px-4 py-3">Creator</th>
+            <th className="hidden lg:table-cell px-4 py-3">Menu</th>
+            <th className="hidden xl:table-cell px-4 py-3">Opened At</th>
+            <th className="px-3 sm:px-5 py-3 text-right">Action</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -76,33 +76,44 @@ export function RoomsTable({
                 key={room.id}
                 className="group transition-colors hover:bg-slate-50/80"
               >
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-3">
+                <td className="px-3 sm:px-5 py-3.5">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
                     <div
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${
+                      className={`flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${
                         isOpen
                           ? "bg-emerald-100 text-emerald-700"
                           : "bg-slate-100 text-slate-500"
                       }`}
                     >
-                      <FiCoffee size={16} />
+                      <FiCoffee size={15} />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                      <p className="font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-1">
                         {room.restaurantName}
                       </p>
                       <p className="line-clamp-1 max-w-xs text-xs text-slate-400">
                         {room.description || "Smart office breakfast order"}
                       </p>
+                      {isOpen ? (
+                        <div className="mt-1 sm:hidden">
+                          <CountdownTimer
+                            secondsRemaining={room.secondsRemaining}
+                            expiresAt={room.expiresAt}
+                            showIcon
+                            pill
+                            size="sm"
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </td>
 
-                <td className="px-4 py-3.5 whitespace-nowrap">
+                <td className="px-3 sm:px-4 py-3.5 whitespace-nowrap">
                   <StatusChip status={room.status} size="sm" />
                 </td>
 
-                <td className="px-4 py-3.5 whitespace-nowrap">
+                <td className="hidden sm:table-cell px-4 py-3.5 whitespace-nowrap">
                   {isOpen ? (
                     <CountdownTimer
                       secondsRemaining={room.secondsRemaining}
@@ -115,27 +126,27 @@ export function RoomsTable({
                   )}
                 </td>
 
-                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-slate-600">
+                <td className="hidden md:table-cell px-4 py-3.5 whitespace-nowrap text-xs text-slate-600">
                   <span className="inline-flex items-center gap-1.5">
                     <FiUser size={13} className="text-slate-400" />
                     {room.createdByName || "Admin"}
                   </span>
                 </td>
 
-                <td className="px-4 py-3.5 whitespace-nowrap tabular-nums text-xs text-slate-600">
+                <td className="hidden lg:table-cell px-4 py-3.5 whitespace-nowrap tabular-nums text-xs text-slate-600">
                   {typeof room.menuItemCount === "number"
                     ? `${room.menuItemCount} items`
                     : "—"}
                 </td>
 
-                <td className="px-4 py-3.5 whitespace-nowrap tabular-nums text-xs text-slate-500">
+                <td className="hidden xl:table-cell px-4 py-3.5 whitespace-nowrap tabular-nums text-xs text-slate-500">
                   {formatDate(room.createdAt)}
                 </td>
 
-                <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                <td className="px-3 sm:px-5 py-3.5 text-right whitespace-nowrap">
                   <Link
                     href={`/user/rooms/${room.id}`}
-                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                    className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-all ${
                       isOpen
                         ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-2xs"
                         : "bg-slate-100 text-slate-700 hover:bg-slate-200"

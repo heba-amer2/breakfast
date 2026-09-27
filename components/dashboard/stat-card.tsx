@@ -83,14 +83,14 @@ export function StatCard({
 
   const content = (
     <div
-      className={`group relative overflow-hidden rounded-2xl border p-5 shadow-xs transition-all duration-200 food-card-hover ${styles.card}`}
+      className={`group relative overflow-hidden rounded-2xl border p-4 sm:p-5 shadow-xs transition-all duration-200 food-card-hover ${styles.card}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">
             {label}
           </p>
-          <p className="mt-1.5 text-3xl font-extrabold tracking-tight tabular-nums text-slate-900">
+          <p className="mt-1.5 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-slate-900 truncate">
             {value}
           </p>
           {hint ? (

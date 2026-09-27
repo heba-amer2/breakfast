@@ -69,7 +69,7 @@ export default function MyOrdersScreen() {
         tag="Order History"
       />
 
-      <PageContainer className="space-y-6 pb-12">
+      <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
         {error ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
@@ -90,7 +90,7 @@ export default function MyOrdersScreen() {
                 key={filter.key}
                 type="button"
                 onClick={() => setStatusFilter(filter.key)}
-                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer select-none ${
+                className={`inline-flex items-center gap-2 rounded-xl px-3 sm:px-3.5 py-2 text-xs font-semibold transition cursor-pointer select-none min-h-[36px] ${
                   active
                     ? "bg-emerald-700 text-white shadow-xs font-bold"
                     : "bg-white text-slate-600 border border-slate-200/90 hover:bg-emerald-50/50 hover:text-emerald-900 hover:border-emerald-200 shadow-2xs"
@@ -121,7 +121,7 @@ export default function MyOrdersScreen() {
               </span>
             </div>
 
-            <div className="relative min-w-[220px]">
+            <div className="relative w-full sm:w-64 sm:min-w-[220px]">
               <FiSearch
                 size={15}
                 className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"

@@ -64,18 +64,18 @@ export default function MyBillPage() {
         subtitle="Individual food items, equal delivery share, and final balance."
         tag="Personal Bill"
         actions={
-          <div className="flex items-center gap-2">
-            <Link href={`/user/rooms/${roomId}`}>
-              <Button variant="secondary" size="sm">
-                <span className="inline-flex items-center gap-1.5">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Link href={`/user/rooms/${roomId}`} className="flex-1 sm:flex-none">
+              <Button variant="secondary" size="sm" className="w-full sm:w-auto min-h-[38px] sm:min-h-[36px]">
+                <span className="inline-flex items-center justify-center gap-1.5">
                   <FiArrowLeft size={14} />
                   Room Menu
                 </span>
               </Button>
             </Link>
-            <Link href={`/user/rooms/${roomId}/bill`}>
-              <Button variant="ghost" size="sm">
-                <span className="inline-flex items-center gap-1.5">
+            <Link href={`/user/rooms/${roomId}/bill`} className="flex-1 sm:flex-none">
+              <Button variant="ghost" size="sm" className="w-full sm:w-auto min-h-[38px] sm:min-h-[36px]">
+                <span className="inline-flex items-center justify-center gap-1.5">
                   <FiUsers size={14} />
                   Full Team Split
                 </span>
@@ -85,7 +85,7 @@ export default function MyBillPage() {
         }
       />
 
-      <PageContainer className="space-y-6 pb-12">
+      <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
         {roomError || billingError ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {roomError || billingError}
@@ -93,7 +93,7 @@ export default function MyBillPage() {
         ) : null}
 
         {/* Room Header Info */}
-        <div className="flex flex-col gap-4 rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-xs sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <StatusChip status={room?.status} />
@@ -213,7 +213,7 @@ export default function MyBillPage() {
 
           {/* Right Column: Receipt Breakdown & Split Math */}
           <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <FiFileText size={18} className="text-emerald-600" />
@@ -304,7 +304,7 @@ export default function MyBillPage() {
 
               <div className="pt-2">
                 <Link href={`/user/rooms/${roomId}/bill`} className="block">
-                  <Button fullWidth variant="secondary" size="md">
+                  <Button fullWidth variant="secondary" size="md" className="min-h-[44px]">
                     <span className="inline-flex items-center gap-2">
                       <FiUsers size={15} />
                       View Entire Room Split

@@ -6,9 +6,11 @@ import { useParams } from "next/navigation";
 import {
   FiArrowLeft,
   FiArrowRight,
+  FiCheckCircle,
   FiClock,
   FiGrid,
   FiList,
+  FiPlus,
   FiPlusCircle,
   FiSearch,
   FiShoppingBag,
@@ -23,6 +25,7 @@ import { MenuItemCard } from "@/components/restaurants/menu-card";
 import { MenuTable } from "@/components/restaurants/menu-table";
 import { PhoneLink } from "@/components/shared/phone-link";
 import { Button, CountdownTimer, EmptyState, Skeleton } from "@/components/ui";
+import { MenuItemFormModal } from "@/components/admin/menu-item-form-modal";
 import { useAuthFetch } from "@/features/shared/hooks/useAuthFetch";
 import {
   fetchRestaurantById,
@@ -58,6 +61,8 @@ export default function RestaurantDetailScreen() {
   const [selectedCategory, setSelectedCategory] = useState<DishCategory>("All");
   const [sortKey, setSortKey] = useState<SortOption>("price-asc");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [isAddItemOpen, setIsAddItemOpen] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   useAuthFetch(async () => {
     if (!Number.isFinite(restaurantId)) {
@@ -131,31 +136,59 @@ export default function RestaurantDetailScreen() {
         subtitle="Verified past-receipt pricing and dish catalog."
         tag="Restaurant Menu"
         actions={
-          <div className="flex items-center gap-2">
-            <Link href={backHref}>
-              <Button variant="secondary" size="sm">
-                <span className="inline-flex items-center gap-1.5">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Link href={backHref} className="flex-1 sm:flex-none">
+              <Button variant="secondary" size="sm" fullWidth className="sm:w-auto">
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                   <FiArrowLeft size={14} />
-                  All Restaurants
+                  <span>All Restaurants</span>
                 </span>
               </Button>
             </Link>
 
             {user?.role === "ADMIN" ? (
-              <Link href="/admin/open-new-room">
-                <Button size="sm">
-                  <span className="inline-flex items-center gap-1.5">
-                    <FiPlusCircle size={14} />
-                    Open Room
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => setIsAddItemOpen(true)}
+                  className="flex-1 sm:flex-none cursor-pointer"
+                >
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <FiPlus size={14} />
+                    <span>Add Item</span>
                   </span>
                 </Button>
-              </Link>
+
+                <Link href="/admin/open-new-room" className="flex-1 sm:flex-none">
+                  <Button variant="secondary" size="sm" fullWidth className="sm:w-auto">
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <FiPlusCircle size={14} />
+                      <span>Open Room</span>
+                    </span>
+                  </Button>
+                </Link>
+              </>
             ) : null}
           </div>
         }
       />
 
-      <PageContainer className="space-y-6 pb-12">
+      <PageContainer className="space-y-4 sm:space-y-6 pb-12">
+        {feedback ? (
+          <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-semibold text-emerald-800 shadow-xs">
+            <div className="flex items-center gap-2">
+              <FiCheckCircle size={16} className="text-emerald-600 shrink-0" />
+              <span>{feedback}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFeedback(null)}
+              className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+            >
+              <FiX size={14} />
+            </button>
+          </div>
+        ) : null}
         {error ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 shadow-sm">
             {error}
@@ -163,10 +196,10 @@ export default function RestaurantDetailScreen() {
         ) : null}
 
         {/* Restaurant Hero Card */}
-        <div className="overflow-hidden rounded-3xl border border-emerald-200/90 bg-linear-to-br from-white via-emerald-50/20 to-emerald-50/40 p-6 sm:p-7 shadow-xs">
+        <div className="overflow-hidden rounded-3xl border border-emerald-200/90 bg-linear-to-br from-white via-emerald-50/20 to-emerald-50/40 p-4 sm:p-6 lg:p-7 shadow-xs">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm ring-4 ring-emerald-100">
+            <div className="flex flex-col sm:flex-row items-start gap-4">
+              <div className="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm ring-4 ring-emerald-100">
                 <LuUtensils size={28} />
               </div>
 
@@ -202,8 +235,8 @@ export default function RestaurantDetailScreen() {
             </div>
 
             {/* Quick Metrics Strip */}
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="rounded-2xl border border-emerald-200/80 bg-white px-5 py-3 text-center shadow-2xs">
+            <div className="hidden sm:flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              <div className="flex-1 sm:flex-none min-w-[120px] rounded-2xl border border-emerald-200/80 bg-white px-4 sm:px-5 py-3 text-center shadow-2xs">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
                   Catalog Dishes
                 </p>
@@ -213,7 +246,7 @@ export default function RestaurantDetailScreen() {
               </div>
 
               {priceRange ? (
-                <div className="rounded-2xl border border-slate-200/90 bg-white px-5 py-3 text-center shadow-2xs">
+                <div className="flex-1 sm:flex-none min-w-[120px] rounded-2xl border border-slate-200/90 bg-white px-4 sm:px-5 py-3 text-center shadow-2xs">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Price Range
                   </p>
@@ -228,7 +261,7 @@ export default function RestaurantDetailScreen() {
 
         {/* Live Breakfast Room Active Banner (Order Flow Integration) */}
         {activeRoom ? (
-          <div className="overflow-hidden rounded-3xl border-2 border-emerald-500 bg-linear-to-r from-emerald-600 to-teal-700 p-5 sm:p-6 text-white shadow-md">
+          <div className="overflow-hidden rounded-3xl border-2 border-emerald-500 bg-linear-to-r from-emerald-600 to-teal-700 p-4 sm:p-6 text-white shadow-md">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -260,10 +293,10 @@ export default function RestaurantDetailScreen() {
                   />
                 </div>
 
-                <Link href={`/user/rooms/${activeRoom.id}`}>
+                <Link href={`/user/rooms/${activeRoom.id}`} className="w-full sm:w-auto">
                   <button
                     type="button"
-                    className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-xs sm:text-sm font-bold text-emerald-900 shadow-md transition hover:bg-emerald-50 hover:shadow-lg active:scale-95 cursor-pointer"
+                    className="inline-flex w-full sm:w-auto justify-center items-center gap-2 rounded-xl bg-white px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-emerald-900 shadow-md transition hover:bg-emerald-50 hover:shadow-lg active:scale-95 min-h-[44px] cursor-pointer"
                   >
                     <FiShoppingBag size={15} />
                     <span>Join Room &amp; Order Dishes</span>
@@ -279,9 +312,9 @@ export default function RestaurantDetailScreen() {
         <div className="space-y-4">
           {/* Section Heading & Category Filter Tabs */}
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Verified Menu Dishes</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900">Verified Menu Dishes</h2>
                 <p className="text-xs text-slate-500">
                   {activeRoom
                     ? `Order any of these verified dishes directly into Room #${activeRoom.id}`
@@ -290,12 +323,12 @@ export default function RestaurantDetailScreen() {
               </div>
 
               {/* View Switcher: Cards vs Table */}
-              <div className="inline-flex rounded-xl border border-slate-200/80 bg-white p-1 shadow-2xs">
+              <div className="inline-flex rounded-xl border border-slate-200/80 bg-white p-1 shadow-2xs self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setViewMode("cards")}
                   aria-label="Cards view"
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                  className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition min-h-[34px] cursor-pointer ${
                     viewMode === "cards"
                       ? "bg-emerald-50 text-emerald-800 font-bold"
                       : "text-slate-500 hover:text-slate-800"
@@ -308,7 +341,7 @@ export default function RestaurantDetailScreen() {
                   type="button"
                   onClick={() => setViewMode("table")}
                   aria-label="Table view"
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                  className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition min-h-[34px] cursor-pointer ${
                     viewMode === "table"
                       ? "bg-emerald-50 text-emerald-800 font-bold"
                       : "text-slate-500 hover:text-slate-800"
@@ -322,7 +355,7 @@ export default function RestaurantDetailScreen() {
 
             {/* Category Filter Pills Bar */}
             {availableCategories.length > 1 ? (
-              <div className="flex flex-wrap items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-1">
                 {availableCategories.map(({ category, count }) => {
                   const isSelected = selectedCategory === category;
                   const icon = getCategoryIcon(category, 14);
@@ -332,7 +365,7 @@ export default function RestaurantDetailScreen() {
                       key={category}
                       type="button"
                       onClick={() => setSelectedCategory(category)}
-                      className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer select-none ${
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold transition cursor-pointer select-none min-h-[36px] ${
                         isSelected
                           ? "bg-emerald-600 text-white font-bold shadow-xs"
                           : "border border-slate-200/90 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -357,7 +390,7 @@ export default function RestaurantDetailScreen() {
           </div>
 
           {/* Search & Sort Controls Bar */}
-          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
             <div className="relative flex-1 sm:max-w-md">
               <FiSearch
                 size={15}
@@ -368,7 +401,7 @@ export default function RestaurantDetailScreen() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search dishes by name…"
-                className="h-10 w-full rounded-xl border border-slate-200/90 bg-slate-50/50 pl-9.5 pr-8 text-xs text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-slate-200/90 bg-slate-50/50 pl-9.5 pr-8 text-xs sm:text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
               />
               {search ? (
                 <button
@@ -401,13 +434,13 @@ export default function RestaurantDetailScreen() {
 
           {/* Menu Items Presentation */}
           {loading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-3.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <Skeleton key={i} className="h-48 w-full rounded-3xl" />
               ))}
             </div>
           ) : filteredMenu.length === 0 ? (
-            <div className="rounded-3xl border border-slate-200/90 bg-white p-8 shadow-xs">
+            <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
               <EmptyState
                 icon={<FiTag size={32} className="text-slate-400" />}
                 title={
@@ -435,15 +468,23 @@ export default function RestaurantDetailScreen() {
                       Reset Filters
                     </Button>
                   ) : user?.role === "ADMIN" ? (
-                    <Link href="/admin/open-new-room">
-                      <Button size="sm">Open a Room to Start Ordering</Button>
-                    </Link>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <Button size="sm" onClick={() => setIsAddItemOpen(true)}>
+                        <FiPlus size={14} className="mr-1" />
+                        + Add Menu Item
+                      </Button>
+                      <Link href="/admin/open-new-room">
+                        <Button variant="secondary" size="sm">
+                          Open Room to Start Ordering
+                        </Button>
+                      </Link>
+                    </div>
                   ) : undefined
                 }
               />
             </div>
           ) : viewMode === "cards" ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-3.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredMenu.map((item, index) => (
                 <MenuItemCard
                   key={item.id ?? `${item.name}-${index}`}
@@ -463,6 +504,21 @@ export default function RestaurantDetailScreen() {
           )}
         </div>
       </PageContainer>
+
+      {/* Admin Add Menu Item Modal */}
+      {user?.role === "ADMIN" && restaurant ? (
+        <MenuItemFormModal
+          isOpen={isAddItemOpen}
+          onClose={() => setIsAddItemOpen(false)}
+          restaurantId={restaurant.id}
+          item={null}
+          onSuccess={(saved) => {
+            setFeedback(`Menu item "${saved.name}" saved at ${formatMoney(saved.verifiedPrice)}!`);
+            dispatch(fetchRestaurantMenu(restaurant.id));
+            dispatch(fetchRestaurantById(restaurant.id));
+          }}
+        />
+      ) : null}
     </>
   );
 }

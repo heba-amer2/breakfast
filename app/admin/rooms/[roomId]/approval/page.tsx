@@ -214,9 +214,10 @@ export default function RoomApprovalPage() {
         actions={
           <Link
             href={`/admin/rooms/${Number.isFinite(roomId) ? roomId : ""}/summary`}
+            className="w-full sm:w-auto"
           >
-            <Button size="sm" variant="secondary">
-              <span className="inline-flex items-center gap-1.5">
+            <Button size="sm" variant="secondary" className="w-full sm:w-auto min-h-[38px] sm:min-h-[36px]">
+              <span className="inline-flex items-center justify-center gap-1.5">
                 <FiArrowLeft size={14} />
                 Back to summary
               </span>
@@ -225,7 +226,7 @@ export default function RoomApprovalPage() {
         }
       />
 
-      <PageContainer className="pb-12">
+      <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
         {isOpen ? (
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-900 shadow-2xs">
             <div className="flex items-center gap-2.5">
@@ -269,7 +270,7 @@ export default function RoomApprovalPage() {
             title="Room not found"
             description="The requested room could not be loaded."
             action={
-              <Link href="/admin/approval-queue">
+              <Link href="/admin/approval-queue?tab=closed&stage=approval">
                 <Button size="sm">Back to approvals</Button>
               </Link>
             }
@@ -330,39 +331,39 @@ export default function RoomApprovalPage() {
               </div>
 
               {/* 4 Financial KPI Metrics */}
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="mt-6 hidden lg:grid lg:grid-cols-4 gap-3">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3 sm:p-3.5 min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">
                     Participants
                   </p>
-                  <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                  <p className="mt-1 text-lg sm:text-xl font-bold tabular-nums text-slate-900 truncate">
                     {bill?.participantCount ?? summary?.participantCount ?? 0}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3 sm:p-3.5 min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">
                     Food Subtotal
                   </p>
-                  <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                  <p className="mt-1 text-lg sm:text-xl font-bold tabular-nums text-slate-900 truncate">
                     {formatMoney(foodSubtotal)}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3 sm:p-3.5 min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">
                     Delivery Fee
                   </p>
-                  <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">
+                  <p className="mt-1 text-lg sm:text-xl font-bold tabular-nums text-slate-900 truncate">
                     {formatMoney(deliveryFee)}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-3.5">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-3 sm:p-3.5 min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 truncate">
                     Final Grand Total
                   </p>
-                  <p className="mt-1 text-xl font-extrabold tabular-nums text-emerald-950">
+                  <p className="mt-1 text-lg sm:text-xl font-extrabold tabular-nums text-emerald-950 truncate">
                     {formatMoney(receiptTotal)}
                   </p>
                 </div>
@@ -424,7 +425,7 @@ export default function RoomApprovalPage() {
                               </p>
                             </div>
 
-                            <div className="flex items-center gap-3 self-end sm:self-auto">
+                            <div className="flex items-center gap-3 self-stretch sm:self-auto justify-between sm:justify-end w-full sm:w-auto pt-2 sm:pt-0 border-t border-slate-100 sm:border-0">
                               <span className="text-xs font-semibold text-slate-400">
                                 Verified Price
                               </span>
@@ -587,7 +588,7 @@ export default function RoomApprovalPage() {
                     </Button>
 
                     <Link href={`/admin/rooms/${room.id}/summary`} className="block">
-                      <Button fullWidth variant="ghost" size="sm" className="text-slate-600 cursor-pointer">
+                      <Button fullWidth variant="ghost" size="sm" className="text-slate-600 cursor-pointer min-h-[38px] sm:min-h-[36px]">
                         Cancel &amp; return to summary
                       </Button>
                     </Link>

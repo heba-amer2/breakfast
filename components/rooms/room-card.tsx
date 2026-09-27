@@ -15,7 +15,7 @@ export function RoomCard({ room }: RoomCardProps) {
   return (
     <Link
       href={`/user/rooms/${room.id}`}
-      className={`group relative block rounded-2xl border p-5 shadow-xs transition-all duration-200 food-card-hover ${
+      className={`group relative block rounded-2xl border p-3.5 sm:p-5 shadow-xs transition-all duration-200 food-card-hover ${
         isOpen
           ? "border-emerald-200/80 bg-linear-to-b from-white to-emerald-50/20 hover:border-emerald-300"
           : "border-slate-200/90 bg-white hover:border-slate-300"
@@ -77,7 +77,7 @@ export function RoomCard({ room }: RoomCardProps) {
           ) : null}
         </div>
 
-        <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 transition-transform group-hover:translate-x-1">
+        <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 transition-transform group-hover:translate-x-1 min-h-[30px] sm:min-h-0">
           <span>{isOpen ? "Order now" : "View room"}</span>
           <FiArrowRight size={13} />
         </span>

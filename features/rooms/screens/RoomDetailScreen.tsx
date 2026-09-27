@@ -264,30 +264,30 @@ export default function RoomDetailScreen() {
         subtitle="Select dishes from verified past receipts or add any custom breakfast order."
         tag={isOpen ? "Live Ordering" : "Closed Room"}
         actions={
-          <div className="flex items-center gap-2">
-            <Link href={isAdmin ? "/admin/admin-dashboard" : "/user/rooms"}>
-              <Button variant="secondary" size="sm">
-                <span className="inline-flex items-center gap-1.5">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Link href={isAdmin ? "/admin/admin-dashboard" : "/user/rooms"} className="flex-1 sm:flex-none">
+              <Button variant="secondary" size="sm" fullWidth className="sm:w-auto">
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                   <FiArrowLeft size={14} />
-                  {isAdmin ? "Dashboard" : "All Rooms"}
+                  <span>{isAdmin ? "Dashboard" : "All Rooms"}</span>
                 </span>
               </Button>
             </Link>
             {!isOpen && isAdmin ? (
-              <Link href={`/admin/rooms/${roomId}/summary`}>
-                <Button variant="secondary" size="sm">
-                  <span className="inline-flex items-center gap-1.5">
+              <Link href={`/admin/rooms/${roomId}/summary`} className="flex-1 sm:flex-none">
+                <Button variant="secondary" size="sm" fullWidth className="sm:w-auto">
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                     <FiFileText size={14} />
-                    Calling Sheet
+                    <span>Calling Sheet</span>
                   </span>
                 </Button>
               </Link>
             ) : null}
-            <Link href={`/user/rooms/${roomId}/cart`}>
-              <Button size="sm" variant={isOpen ? "primary" : "secondary"}>
-                <span className="inline-flex items-center gap-1.5">
+            <Link href={`/user/rooms/${roomId}/cart`} className="flex-1 sm:flex-none">
+              <Button size="sm" variant={isOpen ? "primary" : "secondary"} fullWidth className="sm:w-auto">
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
                   <FiShoppingBag size={14} />
-                  My Cart ({cart.length})
+                  <span>Cart ({cart.length})</span>
                 </span>
               </Button>
             </Link>
@@ -295,7 +295,7 @@ export default function RoomDetailScreen() {
         }
       />
 
-      <PageContainer className="space-y-6 pb-12">
+      <PageContainer className={`space-y-4 sm:space-y-6 pb-12 ${cart.length > 0 ? "pb-24 xl:pb-12" : ""}`}>
         {/* Error Alert State with Retry Action */}
         {hasActiveError ? (
           <div className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
@@ -318,7 +318,7 @@ export default function RoomDetailScreen() {
         ) : null}
 
         {/* 1. Room Header */}
-        <div className="relative overflow-hidden rounded-3xl border border-emerald-200/90 bg-linear-to-br from-white via-emerald-50/20 to-emerald-50/30 p-6 sm:p-7 shadow-xs">
+        <div className="relative overflow-hidden rounded-3xl border border-emerald-200/90 bg-linear-to-br from-white via-emerald-50/20 to-emerald-50/30 p-4 sm:p-7 shadow-xs">
           {loading ? (
             <div className="space-y-3">
               <Skeleton className="h-6 w-48 rounded-lg" />
@@ -371,7 +371,7 @@ export default function RoomDetailScreen() {
               </div>
 
               {/* Countdown Urgency Box */}
-              <div className="flex shrink-0 flex-col items-center justify-center rounded-2xl border border-emerald-200/80 bg-white/90 px-6 py-4 text-center shadow-2xs backdrop-blur-xs">
+              <div className="flex w-full sm:w-auto shrink-0 flex-col items-center justify-center rounded-2xl border border-emerald-200/80 bg-white/90 px-4 sm:px-6 py-3.5 sm:py-4 text-center shadow-2xs backdrop-blur-xs">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   {isOpen ? "Ordering Closes In" : "Order Status"}
                 </p>
@@ -475,7 +475,7 @@ export default function RoomDetailScreen() {
         ) : null}
 
         {/* 2-Column Ordering Surface: Menu on Left, Sticky Cart & Custom Dish on Right */}
-        <div className="grid gap-6 xl:grid-cols-[1.45fr_0.95fr]">
+        <div className="grid gap-4 sm:gap-6 xl:grid-cols-[1.45fr_0.95fr]">
           {/* Left Column: 2. Verified Menu Section */}
           <section className="space-y-4">
             <div className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-xs">
@@ -744,8 +744,8 @@ export default function RoomDetailScreen() {
 
           {/* Right Column: 4. Cart Section & 3. Custom Dish Entry */}
           <aside className="space-y-5 xl:sticky xl:top-20 xl:self-start">
-            {/* 4. Live User Cart */}
-            <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
+            {/* 4. Live User Cart (Desktop Only - Mobile uses floating cart bar) */}
+            <div className="hidden xl:block rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
               <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3.5">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
@@ -928,13 +928,13 @@ export default function RoomDetailScreen() {
 
                   <Button
                     fullWidth
-                    size="sm"
+                    size="md"
                     type="submit"
                     disabled={addingCustom}
                   >
                     <span className="inline-flex items-center justify-center gap-1.5">
-                      <FiPlus size={14} />
-                      {addingCustom ? "Adding to Cart…" : "Add Custom Dish"}
+                      <FiPlus size={15} />
+                      <span>{addingCustom ? "Adding to Cart…" : "Add Custom Dish"}</span>
                     </span>
                   </Button>
                 </form>
@@ -1057,6 +1057,39 @@ export default function RoomDetailScreen() {
             ) : null}
           </aside>
         </div>
+
+        {/* Mobile/Tablet Floating Cart Bar */}
+        {cart.length > 0 ? (
+          <div className="fixed bottom-4 left-3.5 right-3.5 z-30 xl:hidden">
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-600/30 bg-emerald-900/95 p-3 sm:p-3.5 text-white shadow-xl backdrop-blur-md">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-700/80 text-emerald-200">
+                  <FiShoppingBag size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-emerald-200 truncate">
+                    {cart.length} {cart.length === 1 ? "dish" : "dishes"} selected
+                  </p>
+                  <p className="text-sm font-extrabold tabular-nums text-white">
+                    {formatMoney(cartTotal)}
+                  </p>
+                </div>
+              </div>
+              <Link href={`/user/rooms/${roomId}/cart`} className="shrink-0">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="bg-emerald-500 hover:bg-emerald-400 text-white font-bold border-none shadow-sm cursor-pointer min-h-[40px] px-3.5"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>{isOpen ? "Review Cart" : "View Order"}</span>
+                    <FiShoppingBag size={13} />
+                  </span>
+                </Button>
+              </Link>
+            </div>
+          </div>
+        ) : null}
       </PageContainer>
     </>
   );

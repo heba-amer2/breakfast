@@ -62,9 +62,9 @@ export default function UserDashboardScreen() {
         title={`Good morning, ${firstName}`}
         subtitle="Order with your team and split breakfast delivery transparently."
         actions={
-          <Link href="/user/rooms">
-            <Button size="sm">
-              <span className="inline-flex items-center gap-1.5">
+          <Link href="/user/rooms" className="w-full sm:w-auto">
+            <Button size="sm" className="w-full sm:w-auto min-h-[38px] sm:min-h-[36px]">
+              <span className="inline-flex items-center justify-center gap-1.5">
                 <FiCompass size={14} />
                 Explore Rooms
               </span>
@@ -73,7 +73,7 @@ export default function UserDashboardScreen() {
         }
       />
 
-      <PageContainer className="space-y-6">
+      <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
         {!isAuthenticated ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             Checking your session…
@@ -86,111 +86,9 @@ export default function UserDashboardScreen() {
           </div>
         ) : null}
 
-        {/* Live Order Spotlight Card */}
-        {spotlightRoom ? (
-          <div className="relative overflow-hidden rounded-3xl border border-emerald-700/50 bg-linear-to-r from-emerald-950 via-emerald-900 to-slate-950 p-6 text-white shadow-lg shadow-emerald-950/20">
-            {/* Background glow elements */}
-            <div className="pointer-events-none absolute -right-12 -top-12 h-64 w-64 rounded-full bg-emerald-500/20 blur-3xl" />
-            <div className="pointer-events-none absolute bottom-0 right-1/4 h-32 w-32 rounded-full bg-emerald-400/15 blur-2xl" />
-
-            <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-bold text-emerald-300 ring-1 ring-inset ring-emerald-400/30">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                    </span>
-                    Live Breakfast Session
-                  </span>
-                  <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs text-emerald-200">
-                    Room #{spotlightRoom.id}
-                  </span>
-                </div>
-
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                    {spotlightRoom.restaurantName}
-                  </h2>
-                  <p className="mt-1 text-sm text-emerald-100/80 max-w-xl leading-relaxed">
-                    {spotlightRoom.description ||
-                      "Orders are being pooled right now. Select your items before time runs out."}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 text-xs text-emerald-200/90 pt-1">
-                  <span className="inline-flex items-center gap-1.5">
-                    <FiClock size={14} className="text-emerald-400" />
-                    {spotlightRoom.secondsRemaining !== null &&
-                    spotlightRoom.secondsRemaining !== undefined ? (
-                      <span>
-                        Closes in{" "}
-                        <CountdownTimer
-                          secondsRemaining={spotlightRoom.secondsRemaining}
-                          expiresAt={spotlightRoom.expiresAt}
-                          className="font-bold text-emerald-300"
-                        />
-                      </span>
-                    ) : (
-                      <span>Time remaining active</span>
-                    )}
-                  </span>
-                  {spotlightRoom.createdByName ? (
-                    <span>Host: {spotlightRoom.createdByName}</span>
-                  ) : null}
-                  {typeof spotlightRoom.menuItemCount === "number" ? (
-                    <span className="inline-flex items-center gap-1">
-                      <FiCoffee size={14} className="text-emerald-300" />
-                      {spotlightRoom.menuItemCount} items available
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-3">
-                <Link href={`/user/rooms/${spotlightRoom.id}`}>
-                  <button
-                    type="button"
-                    className="group inline-flex items-center gap-2 rounded-2xl bg-linear-to-r from-emerald-400 to-emerald-500 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-md shadow-emerald-500/25 transition-all duration-200 hover:from-emerald-300 hover:to-emerald-400 active:scale-98 cursor-pointer"
-                  >
-                    <span>Order Now</span>
-                    <FiArrowRight
-                      size={16}
-                      className="transition-transform group-hover:translate-x-1"
-                    />
-                  </button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-3xl border border-emerald-200/60 bg-linear-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-6 shadow-2xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-xs">
-                  <FiCoffee size={24} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    No breakfast room is active right now
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    An admin will open today&apos;s ordering session soon. You can explore restaurants in the meantime.
-                  </p>
-                </div>
-              </div>
-
-              <Link href="/user/restaurants">
-                <Button variant="secondary" size="sm">
-                  View Restaurants &amp; Menus
-                </Button>
-              </Link>
-            </div>
-          </div>
-        )}
 
         {/* Quick KPI Stat Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="hidden lg:grid gap-4 lg:grid-cols-3">
           <StatCard
             label="Live Rooms Open"
             value={loading ? "—" : activeCount}
@@ -218,27 +116,27 @@ export default function UserDashboardScreen() {
         </div>
 
         {/* Fast Action Shortcuts */}
-        <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-2xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 px-2">
+        <div className="hidden sm:flex flex-wrap items-center gap-2 sm:gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-3 sm:p-3.5 shadow-2xs">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 px-2 w-full sm:w-auto">
             Quick Actions:
           </span>
           <Link
             href="/user/rooms"
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200"
+            className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200 min-h-[38px] sm:min-h-[36px]"
           >
             <FiCompass size={14} className="text-emerald-600" />
             Browse All Rooms
           </Link>
           <Link
             href="/user/restaurants"
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200"
+            className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200 min-h-[38px] sm:min-h-[36px]"
           >
             <FiCoffee size={14} className="text-emerald-700" />
             Verified Menus
           </Link>
           <Link
             href="/user/my-orders"
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200"
+            className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200 min-h-[38px] sm:min-h-[36px]"
           >
             <FiFileText size={14} className="text-emerald-800" />
             My Order Bills
@@ -246,13 +144,13 @@ export default function UserDashboardScreen() {
         </div>
 
         {/* Main Grid: Open Rooms & Recent Activity */}
-        <div className="grid gap-6 xl:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 xl:grid-cols-2">
           <OpenRoomsSection rooms={activeRooms} loading={loading} />
           <MyRecentRoomsTable rooms={myRooms} loading={loading} />
         </div>
 
         {/* How It Works Guide Strip */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xs">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-2xs">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">
             How Smart Office Breakfast Works
           </h3>

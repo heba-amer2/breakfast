@@ -72,7 +72,7 @@ export default function RestaurantsScreen() {
         ) : null}
 
         {/* Hero stat cards */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <div className="mb-4 sm:mb-6 hidden lg:grid gap-3.5 sm:gap-4 lg:grid-cols-3">
           <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:border-emerald-200 hover:shadow-md">
             <div className="flex items-center justify-between">
               <div>
@@ -128,16 +128,17 @@ export default function RestaurantsScreen() {
             <div className="mt-2">
               <Link
                 href="/user/rooms"
-                className="inline-flex items-center text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 py-1"
               >
-                Browse open rooms →
+                <span>Browse open rooms</span>
+                <span>&rarr;</span>
               </Link>
             </div>
           </div>
         </div>
 
         {/* Search and view toggle bar */}
-        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-4 sm:mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 sm:p-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 sm:max-w-md">
             <FiSearch
               size={16}
@@ -148,7 +149,7 @@ export default function RestaurantsScreen() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by restaurant name or phone…"
-              className="h-10 w-full rounded-xl border border-slate-200/80 bg-slate-50/50 pl-10 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-slate-200/80 bg-slate-50/50 pl-10 pr-3 text-xs sm:text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
             />
           </div>
 
@@ -161,7 +162,7 @@ export default function RestaurantsScreen() {
               <button
                 type="button"
                 onClick={() => setViewMode("grid")}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition min-h-[34px] cursor-pointer ${
                   viewMode === "grid"
                     ? "bg-white text-slate-900 shadow-sm font-bold"
                     : "text-slate-600 hover:text-slate-900"
@@ -174,7 +175,7 @@ export default function RestaurantsScreen() {
               <button
                 type="button"
                 onClick={() => setViewMode("table")}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition min-h-[34px] cursor-pointer ${
                   viewMode === "table"
                     ? "bg-white text-slate-900 shadow-sm font-bold"
                     : "text-slate-600 hover:text-slate-900"

@@ -139,10 +139,10 @@ export default function AdminRoomSummaryPage() {
         }
         tag="ADMIN OPS"
         actions={
-          <div className="flex items-center gap-2">
-            <Link href="/admin/admin-dashboard">
-              <Button size="sm" variant="secondary">
-                <span className="inline-flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <Link href="/admin/admin-dashboard" className="flex-1 sm:flex-none">
+              <Button size="sm" variant="secondary" className="w-full sm:w-auto min-h-[38px] sm:min-h-[36px]">
+                <span className="inline-flex items-center justify-center gap-1.5">
                   <FiArrowLeft size={14} />
                   Dashboard
                 </span>
@@ -150,9 +150,9 @@ export default function AdminRoomSummaryPage() {
             </Link>
 
             {isOpen ? (
-              <Link href={`/user/rooms/${roomId}`}>
-                <Button size="sm" variant="secondary" className="cursor-pointer">
-                  <span className="inline-flex items-center gap-1.5">
+              <Link href={`/user/rooms/${roomId}`} className="flex-1 sm:flex-none">
+                <Button size="sm" variant="secondary" className="cursor-pointer w-full sm:w-auto min-h-[38px] sm:min-h-[36px]">
+                  <span className="inline-flex items-center justify-center gap-1.5">
                     <FiShoppingBag size={14} />
                     Ordering View
                   </span>
@@ -168,9 +168,9 @@ export default function AdminRoomSummaryPage() {
                   setCloseError(null);
                   setIsCloseModalOpen(true);
                 }}
-                className="cursor-pointer"
+                className="cursor-pointer flex-1 sm:flex-none w-full sm:w-auto min-h-[38px] sm:min-h-[36px]"
               >
-                <span className="inline-flex items-center gap-1.5">
+                <span className="inline-flex items-center justify-center gap-1.5">
                   <FiLock size={14} />
                   Close Room
                 </span>
@@ -180,7 +180,7 @@ export default function AdminRoomSummaryPage() {
         }
       />
 
-      <PageContainer className="pb-12">
+      <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
         {/* Success Alert Banner */}
         {closeSuccess ? (
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-sm text-emerald-800 shadow-2xs">
@@ -310,39 +310,39 @@ export default function AdminRoomSummaryPage() {
               </div>
 
               {/* 4 KPI Metrics */}
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <div className="mt-6 hidden lg:grid lg:grid-cols-4 gap-3">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4 min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 truncate">
                     Participants
                   </p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
+                  <p className="mt-1 text-lg sm:text-2xl font-bold tabular-nums text-slate-900 truncate">
                     {summary?.participantCount ?? 0}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4 min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 truncate">
                     Total Items
                   </p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
+                  <p className="mt-1 text-lg sm:text-2xl font-bold tabular-nums text-slate-900 truncate">
                     {totalItemsCount}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4 min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 truncate">
                     Estimated Subtotal
                   </p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-700">
+                  <p className="mt-1 text-lg sm:text-2xl font-bold tabular-nums text-emerald-700 truncate">
                     {formatMoney(summary?.foodTotal ?? 0)}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4 min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 truncate">
                     Pricing Mode
                   </p>
-                  <p className="mt-1 text-xs font-bold text-slate-800">
+                  <p className="mt-1 text-xs font-bold text-slate-800 line-clamp-2">
                     {summary?.pricesVerified
                       ? "Verified catalog prices"
                       : "User estimated prices"}
@@ -355,8 +355,8 @@ export default function AdminRoomSummaryPage() {
             <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
               {/* Aggregated Order Calling Sheet */}
               <div className="space-y-6">
-                <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
-                  <div className="mb-4 flex items-center justify-between">
+                <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-sm">
+                  <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h2 className="text-lg font-bold text-slate-900">
                         Restaurant Order Sheet
@@ -365,7 +365,7 @@ export default function AdminRoomSummaryPage() {
                         Read this directly over the phone to the restaurant.
                       </p>
                     </div>
-                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
+                    <span className="self-start sm:self-auto rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
                       {aggregatedItems.length} unique dish{aggregatedItems.length === 1 ? "" : "es"}
                     </span>
                   </div>
@@ -413,7 +413,7 @@ export default function AdminRoomSummaryPage() {
                 </div>
 
                 {/* Restaurant Menu Catalog */}
-                <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
+                <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-sm">
                   <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
@@ -471,7 +471,7 @@ export default function AdminRoomSummaryPage() {
 
                 {/* Team Participant Breakdown */}
                 {participantMap.length > 0 ? (
-                  <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
+                  <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-sm">
                     <h2 className="mb-4 text-base font-bold text-slate-900">
                       Participant Breakdown ({participantMap.length} people)
                     </h2>
@@ -501,7 +501,7 @@ export default function AdminRoomSummaryPage() {
 
               {/* Sidebar Action Pipeline */}
               <div className="space-y-5">
-                <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
+                <div className="rounded-3xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Next Action
                   </p>
@@ -677,8 +677,9 @@ export default function AdminRoomSummaryPage() {
             </ul>
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-2">
+          <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2">
             <Button
+              className="flex-1 sm:flex-none justify-center"
               variant="secondary"
               size="sm"
               onClick={() => {
@@ -691,6 +692,7 @@ export default function AdminRoomSummaryPage() {
             </Button>
 
             <Button
+              className="flex-1 sm:flex-none justify-center"
               variant="destructive"
               size="sm"
               onClick={handleCloseRoom}

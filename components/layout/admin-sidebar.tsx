@@ -212,7 +212,7 @@ export function AdminSidebar() {
     <>
       <button
         type="button"
-        className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 cursor-pointer lg:hidden"
+        className="fixed left-4 top-3.5 sm:top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 cursor-pointer lg:hidden"
         onClick={() => setOpen(true)}
         aria-label="Open admin menu"
       >

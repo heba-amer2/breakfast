@@ -50,6 +50,7 @@ function NavLink({
       onClick={onNavigate}
       className={[
         "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-150 select-none",
+        "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-150 select-none min-h-[40px]",
         active
           ? "bg-emerald-50 text-emerald-800 font-semibold shadow-2xs"
           : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900",
@@ -199,7 +200,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 cursor-pointer active:scale-98"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-transparent px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 cursor-pointer active:scale-98 min-h-[40px]"
         >
           <FiLogOut size={14} />
           Log out
@@ -212,7 +213,7 @@ export function Sidebar() {
     <>
       <button
         type="button"
-        className="fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 cursor-pointer lg:hidden"
+        className="fixed left-4 top-3.5 sm:top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 cursor-pointer lg:hidden"
         onClick={() => setOpen(true)}
         aria-label="Open navigation menu"
       >

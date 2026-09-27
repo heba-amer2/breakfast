@@ -207,10 +207,10 @@ export default function OpenRoomScreen() {
         tag="ADMIN OPS"
       />
 
-      <PageContainer className="pb-10">
-        <div className="mx-auto max-w-6xl space-y-6">
+      <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
+        <div className="mx-auto max-w-6xl space-y-4 sm:space-y-6">
           <div className="grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-            <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="rounded-2xl sm:rounded-[28px] border border-slate-200 bg-white p-5 sm:p-8 shadow-xs sm:shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-600">
@@ -230,7 +230,7 @@ export default function OpenRoomScreen() {
               </p>
             </div>
 
-            <div className="rounded-[28px] border border-emerald-200 bg-emerald-600 p-6 text-white shadow-sm sm:p-7">
+            <div className="hidden lg:block rounded-2xl sm:rounded-[28px] border border-emerald-200 bg-emerald-600 p-5 sm:p-7 text-white shadow-xs sm:shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15">
                   <FiClock size={18} />
@@ -256,13 +256,13 @@ export default function OpenRoomScreen() {
 
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+            className="rounded-2xl sm:rounded-[30px] border border-slate-200 bg-white p-4 sm:p-6 shadow-xs sm:shadow-sm"
             noValidate
           >
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
               <div className="space-y-5">
                 {/* Mode Selector */}
-                <div className="inline-flex rounded-2xl bg-slate-100 p-1">
+                <div className="inline-flex w-full sm:w-auto max-w-full rounded-2xl bg-slate-100 p-1">
                   {(
                     [
                       { key: "existing", label: "Existing restaurant" },
@@ -278,7 +278,7 @@ export default function OpenRoomScreen() {
                         clearErrors();
                       }}
                       className={[
-                        "rounded-xl px-4 py-2.5 text-sm font-medium transition cursor-pointer",
+                        "flex-1 sm:flex-none text-center rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition cursor-pointer whitespace-nowrap min-h-[38px] sm:min-h-[36px]",
                         mode === tab.key
                           ? "bg-white text-slate-900 shadow-sm font-semibold"
                           : "text-slate-500 hover:text-slate-800",
@@ -376,7 +376,7 @@ export default function OpenRoomScreen() {
                           <button
                             type="button"
                             onClick={() => append({ name: "", price: "" })}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-white px-3.5 py-2 text-xs font-semibold text-emerald-800 shadow-2xs hover:bg-emerald-50 hover:border-emerald-400 transition cursor-pointer self-start sm:self-auto"
+                            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-white px-3.5 py-2 text-xs font-semibold text-emerald-800 shadow-2xs hover:bg-emerald-50 hover:border-emerald-400 transition cursor-pointer w-full sm:w-auto min-h-[38px] sm:min-h-[36px]"
                           >
                             <FiPlus size={14} />
                             <span>+ Add Menu Item</span>
@@ -529,10 +529,29 @@ export default function OpenRoomScreen() {
                     </div>
                   </div>
                 ) : null}
+
+                {/* Mobile / Tablet Primary Submit Action (< lg) */}
+                <div className="pt-2 lg:hidden">
+                  <Button
+                    fullWidth
+                    size="lg"
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="min-h-[44px]"
+                  >
+                    {isSubmitting
+                      ? mode === "new"
+                        ? "Creating & Opening…"
+                        : "Opening…"
+                      : mode === "new"
+                        ? "Create Restaurant & Open Room"
+                        : "Open breakfast room"}
+                  </Button>
+                </div>
               </div>
 
-              {/* Sidebar Preview */}
-              <aside className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+              {/* Desktop-Only Sidebar Preview (>= lg) */}
+              <aside className="hidden lg:block rounded-[28px] border border-slate-200 bg-slate-50 p-5">
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
                     <LuUtensils size={18} />

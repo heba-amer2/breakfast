@@ -68,7 +68,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           ref={ref}
           id={inputId}
           className={[
-            "h-11 w-full rounded-xl border bg-white text-sm text-slate-900 shadow-2xs outline-none transition-all duration-150",
+            "h-11 w-full rounded-xl border bg-white text-base sm:text-sm text-slate-900 shadow-2xs outline-none transition-all duration-150 touch-manipulation",
             "placeholder:text-slate-400",
             "focus:border-emerald-500 focus:ring-3 focus:ring-emerald-500/15 focus:bg-white",
             error

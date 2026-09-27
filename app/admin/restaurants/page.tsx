@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   FiAlertCircle,
   FiCheckCircle,
@@ -39,6 +41,7 @@ import { getDishCategory, getDishIcon } from "@/lib/menuCategories";
 import type { MenuItemDto } from "@/features/restaurants/store/restaurantSlice";
 
 export default function AdminRestaurantsPage() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const restaurants = useAppSelector((state) => state.restaurants.items);
@@ -155,9 +158,9 @@ export default function AdminRestaurantsPage() {
           <Button
             size="sm"
             onClick={() => setIsAddRestaurantOpen(true)}
-            className="cursor-pointer"
+            className="cursor-pointer w-full sm:w-auto min-h-[38px] sm:min-h-[36px]"
           >
-            <span className="inline-flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center gap-1.5">
               <FiPlusCircle size={15} />
               + Add Restaurant
             </span>
@@ -165,7 +168,7 @@ export default function AdminRestaurantsPage() {
         }
       />
 
-      <PageContainer className="space-y-6 pb-12">
+      <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
         {/* Feedback Alert Banner */}
         {feedback ? (
           <div
@@ -215,11 +218,11 @@ export default function AdminRestaurantsPage() {
         ) : null}
 
         {/* 2-Column Master-Detail Layout */}
-        <div className="grid gap-6 lg:grid-cols-[360px_1fr] items-start">
+        <div className="grid gap-6 lg:grid-cols-[360px_1fr] items-start w-full min-w-0">
           {/* ========================================================= */}
           {/* LEFT / MASTER COLUMN: RESTAURANTS SECTION                 */}
           {/* ========================================================= */}
-          <section className="space-y-4">
+          <section className="space-y-4 w-full min-w-0">
             <div className="rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
@@ -271,7 +274,7 @@ export default function AdminRestaurantsPage() {
               </div>
 
               {/* Restaurant Items List */}
-              <div className="mt-3.5 space-y-2 max-h-[580px] overflow-y-auto pr-1">
+              <div className="mt-3.5 space-y-2 max-h-[280px] sm:max-h-[360px] lg:max-h-[580px] overflow-y-auto pr-1">
                 {loadingRestaurants ? (
                   <div className="space-y-2 py-2">
                     {[1, 2, 3, 4].map((i) => (
@@ -325,7 +328,12 @@ export default function AdminRestaurantsPage() {
                       <button
                         key={restaurant.id}
                         type="button"
-                        onClick={() => setSelectedIdOverride(restaurant.id)}
+                        onClick={() => {
+                          setSelectedIdOverride(restaurant.id);
+                          if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                            router.push(`/admin/restaurants/${restaurant.id}`);
+                          }
+                        }}
                         className={`w-full text-left rounded-2xl p-3.5 transition-all duration-150 border cursor-pointer ${
                           isSelected
                             ? "border-emerald-500 bg-emerald-50/60 shadow-xs ring-1 ring-emerald-400"
@@ -387,7 +395,7 @@ export default function AdminRestaurantsPage() {
           {/* ========================================================= */}
           {/* RIGHT / DETAIL COLUMN: SELECTED RESTAURANT & MENU SECTION */}
           {/* ========================================================= */}
-          <section className="space-y-4">
+          <section className="space-y-4 w-full min-w-0 hidden lg:block">
             {selectedRestaurant ? (
               <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
                 {/* Selected Restaurant Header */}
@@ -423,18 +431,30 @@ export default function AdminRestaurantsPage() {
                     </div>
                   </div>
 
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      setItemModalConfig({ isOpen: true, item: null })
-                    }
-                    className="cursor-pointer shrink-0 self-start sm:self-auto"
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      <FiPlus size={14} />
-                      + Add Menu Item
-                    </span>
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <Link href={`/admin/restaurants/${selectedRestaurant.id}`}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="cursor-pointer shrink-0 w-full sm:w-auto min-h-[38px] sm:min-h-[36px] justify-center"
+                      >
+                        <span>View Full Page</span>
+                      </Button>
+                    </Link>
+
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        setItemModalConfig({ isOpen: true, item: null })
+                      }
+                      className="cursor-pointer shrink-0 w-full sm:w-auto min-h-[38px] sm:min-h-[36px] justify-center"
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        <FiPlus size={14} />
+                        + Add Menu Item
+                      </span>
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Menu Controls: Search */}
@@ -514,113 +534,203 @@ export default function AdminRestaurantsPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-slate-200/80">
-                    <table className="w-full min-w-[560px] text-left text-sm">
-                      <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                          <th className="px-5 py-3.5">Dish Item</th>
-                          <th className="px-4 py-3.5">Category</th>
-                          <th className="px-4 py-3.5 font-bold text-slate-700">
-                            Verified Price
-                          </th>
-                          <th className="px-4 py-3.5">Last Verified</th>
-                          <th className="px-5 py-3.5 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {filteredMenu.map((item, index) => {
-                          const icon = getDishIcon(item.name, 17);
-                          const category = getDishCategory(item.name);
-                          const verifiedDate = formatVerifiedDate(
-                            item.lastVerifiedAt,
-                          );
+                  <>
+                    {/* Mobile Dishes Card List (sm:hidden) */}
+                    <div className="space-y-3 sm:hidden">
+                      {filteredMenu.map((item, index) => {
+                        const icon = getDishIcon(item.name, 17);
+                        const category = getDishCategory(item.name);
+                        const verifiedDate = formatVerifiedDate(
+                          item.lastVerifiedAt,
+                        );
 
-                          return (
-                            <tr
-                              key={item.id ?? `${item.name}-${index}`}
-                              className="group transition-colors hover:bg-slate-50/60"
-                            >
-                              <td className="px-5 py-3.5">
-                                <div className="flex items-center gap-3">
-                                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 shadow-2xs group-hover:bg-emerald-50 group-hover:text-emerald-800 transition-colors">
-                                    {icon}
-                                  </span>
-                                  <div>
-                                    <p className="font-semibold text-slate-900 group-hover:text-emerald-900 transition-colors">
-                                      {item.name}
-                                    </p>
-                                    {item.id ? (
-                                      <span className="text-[10px] text-slate-400">
-                                        ID #{item.id}
-                                      </span>
-                                    ) : null}
+                        return (
+                          <div
+                            key={item.id ?? `${item.name}-${index}`}
+                            className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs space-y-3 transition hover:border-slate-300"
+                          >
+                            <div className="flex items-start justify-between gap-2.5">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 shadow-2xs">
+                                  {icon}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-sm text-slate-900 truncate">
+                                    {item.name}
+                                  </p>
+                                  <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">
+                                      {category}
+                                    </span>
+                                    {item.id ? <span>ID #{item.id}</span> : null}
                                   </div>
                                 </div>
-                              </td>
+                              </div>
 
-                              <td className="px-4 py-3.5">
-                                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
-                                  {category}
-                                </span>
-                              </td>
+                              <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold tabular-nums text-emerald-800 border border-emerald-100 shrink-0">
+                                {formatMoney(item.verifiedPrice)}
+                              </span>
+                            </div>
 
-                              <td className="px-4 py-3.5">
-                                <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold tabular-nums text-emerald-800 border border-emerald-100">
-                                  {formatMoney(item.verifiedPrice)}
-                                </span>
-                              </td>
-
-                              <td className="px-4 py-3.5 text-xs text-slate-500">
+                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                              <div className="text-[11px] text-slate-500">
                                 {verifiedDate ? (
-                                  <span className="inline-flex items-center gap-1.5 text-slate-600">
-                                    <FiClock size={13} className="text-slate-400" />
+                                  <span className="inline-flex items-center gap-1 text-slate-600">
+                                    <FiClock size={12} className="text-slate-400" />
                                     <span>{verifiedDate}</span>
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1.5 text-slate-400">
-                                    <FiHelpCircle size={13} />
-                                    <span>Not verified yet</span>
+                                  <span className="inline-flex items-center gap-1 text-slate-400 italic">
+                                    <FiHelpCircle size={12} />
+                                    <span>Unverified</span>
                                   </span>
                                 )}
-                              </td>
+                              </div>
 
-                              <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                                <div className="inline-flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setItemModalConfig({
-                                        isOpen: true,
-                                        item,
-                                      })
-                                    }
-                                    className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 transition cursor-pointer"
-                                  >
-                                    <FiEdit2 size={12} />
-                                    <span>Edit</span>
-                                  </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setItemModalConfig({
+                                      isOpen: true,
+                                      item,
+                                    })
+                                  }
+                                  className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition cursor-pointer min-h-[34px]"
+                                >
+                                  <FiEdit2 size={12} />
+                                  <span>Edit</span>
+                                </button>
 
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setDeleteModalConfig({
-                                        isOpen: true,
-                                        item,
-                                      })
-                                    }
-                                    className="inline-flex items-center gap-1 rounded-xl bg-rose-50 hover:bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700 transition cursor-pointer"
-                                  >
-                                    <FiTrash2 size={12} />
-                                    <span>Delete</span>
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setDeleteModalConfig({
+                                      isOpen: true,
+                                      item,
+                                    })
+                                  }
+                                  className="inline-flex items-center gap-1 rounded-xl bg-rose-50 hover:bg-rose-100 px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition cursor-pointer min-h-[34px]"
+                                >
+                                  <FiTrash2 size={12} />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Tablet & Desktop Dishes Table (hidden sm:block) */}
+                    <div className="hidden sm:block overflow-x-auto rounded-2xl border border-slate-200/80 w-full min-w-0">
+                      <table className="w-full min-w-[520px] text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                            <th className="px-5 py-3.5">Dish Item</th>
+                            <th className="px-4 py-3.5">Category</th>
+                            <th className="px-4 py-3.5 font-bold text-slate-700">
+                              Verified Price
+                            </th>
+                            <th className="px-4 py-3.5">Last Verified</th>
+                            <th className="px-5 py-3.5 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {filteredMenu.map((item, index) => {
+                            const icon = getDishIcon(item.name, 17);
+                            const category = getDishCategory(item.name);
+                            const verifiedDate = formatVerifiedDate(
+                              item.lastVerifiedAt,
+                            );
+
+                            return (
+                              <tr
+                                key={item.id ?? `${item.name}-${index}`}
+                                className="group transition-colors hover:bg-slate-50/60"
+                              >
+                                <td className="px-5 py-3.5">
+                                  <div className="flex items-center gap-3">
+                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 shadow-2xs group-hover:bg-emerald-50 group-hover:text-emerald-800 transition-colors">
+                                      {icon}
+                                    </span>
+                                    <div>
+                                      <p className="font-semibold text-slate-900 group-hover:text-emerald-900 transition-colors">
+                                        {item.name}
+                                      </p>
+                                      {item.id ? (
+                                        <span className="text-[10px] text-slate-400">
+                                          ID #{item.id}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="px-4 py-3.5">
+                                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
+                                    {category}
+                                  </span>
+                                </td>
+
+                                <td className="px-4 py-3.5">
+                                  <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold tabular-nums text-emerald-800 border border-emerald-100">
+                                    {formatMoney(item.verifiedPrice)}
+                                  </span>
+                                </td>
+
+                                <td className="px-4 py-3.5 text-xs text-slate-500">
+                                  {verifiedDate ? (
+                                    <span className="inline-flex items-center gap-1.5 text-slate-600">
+                                      <FiClock size={13} className="text-slate-400" />
+                                      <span>{verifiedDate}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 text-slate-400">
+                                      <FiHelpCircle size={13} />
+                                      <span>Not verified yet</span>
+                                    </span>
+                                  )}
+                                </td>
+
+                                <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                                  <div className="inline-flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setItemModalConfig({
+                                          isOpen: true,
+                                          item,
+                                        })
+                                      }
+                                      className="inline-flex items-center gap-1 rounded-xl bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition cursor-pointer min-h-[32px]"
+                                    >
+                                      <FiEdit2 size={12} />
+                                      <span>Edit</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setDeleteModalConfig({
+                                          isOpen: true,
+                                          item,
+                                        })
+                                      }
+                                      className="inline-flex items-center gap-1 rounded-xl bg-rose-50 hover:bg-rose-100 px-3 py-1.5 text-xs font-semibold text-rose-700 transition cursor-pointer min-h-[32px]"
+                                    >
+                                      <FiTrash2 size={12} />
+                                      <span>Delete</span>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </div>
             ) : (
@@ -640,17 +750,17 @@ export default function AdminRestaurantsPage() {
       {/* ========================================================= */}
 
       {/* Add Restaurant Modal */}
-      <RestaurantFormModal
-        isOpen={isAddRestaurantOpen}
-        onClose={() => setIsAddRestaurantOpen(false)}
-        onSuccess={(created) => {
-          setSelectedIdOverride(created.id);
-          setFeedback({
-            type: "success",
-            message: `Restaurant "${created.name}" created successfully!`,
-          });
-        }}
-      />
+      {isAddRestaurantOpen ? (
+        <RestaurantFormModal
+          isOpen={isAddRestaurantOpen}
+          onClose={() => setIsAddRestaurantOpen(false)}
+          onSuccess={(created) => {
+            setIsAddRestaurantOpen(false);
+            setSelectedIdOverride(created.id);
+            router.push(`/admin/restaurants/${created.id}`);
+          }}
+        />
+      ) : null}
 
       {/* Add / Edit Menu Item Modal */}
       {selectedRestaurant ? (

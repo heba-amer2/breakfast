@@ -92,7 +92,16 @@ export function MenuItemFormModal({
       }
       maxWidth="md"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.target as HTMLElement)?.tagName === "INPUT") {
+            e.preventDefault();
+          }
+        }}
+        className="space-y-4"
+        noValidate
+      >
         {serverError ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
             {serverError}
@@ -139,13 +148,15 @@ export function MenuItemFormModal({
         />
 
         {/* Modal Actions */}
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-2.5 pt-3 border-t border-slate-100">
           <Button
             type="button"
             variant="secondary"
             size="sm"
             onClick={handleClose}
             disabled={isSubmitting}
+            fullWidth
+            className="sm:w-auto"
           >
             Cancel
           </Button>
@@ -153,6 +164,8 @@ export function MenuItemFormModal({
             type="submit"
             size="sm"
             disabled={isSubmitting}
+            fullWidth
+            className="sm:w-auto"
           >
             {isSubmitting
               ? "Saving…"

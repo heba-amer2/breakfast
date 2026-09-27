@@ -20,11 +20,11 @@ export function RestaurantCard({
       : restaurant.menu?.length ?? 0;
 
   return (
-    <div className="group relative flex flex-col justify-between rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs transition-all duration-200 food-card-hover hover:border-emerald-300">
+    <div className="group relative flex flex-col justify-between rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 lg:p-6 shadow-xs transition-all duration-200 food-card-hover hover:border-emerald-300">
       <div>
         <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-emerald-50 to-teal-50 text-emerald-700 ring-1 ring-emerald-200/70 shadow-2xs">
-            <FiCoffee size={22} />
+          <div className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-emerald-50 to-teal-50 text-emerald-700 ring-1 ring-emerald-200/70 shadow-2xs">
+            <FiCoffee size={20} />
           </div>
 
           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
@@ -32,7 +32,7 @@ export function RestaurantCard({
           </span>
         </div>
 
-        <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+        <h3 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
           {restaurant.name}
         </h3>
 
@@ -46,13 +46,13 @@ export function RestaurantCard({
         )}
       </div>
 
-      <div className="mt-5 flex items-center justify-between border-t border-slate-100/90 pt-4">
+      <div className="mt-4 sm:mt-5 flex items-center justify-between border-t border-slate-100/90 pt-3.5 sm:pt-4">
         {adminActions ? (
           <div className="flex items-center gap-2">{adminActions}</div>
         ) : (
           <Link
             href={targetHref}
-            className="inline-flex w-full items-center justify-between text-xs font-bold text-emerald-600 transition group-hover:text-emerald-700"
+            className="inline-flex w-full items-center justify-between text-xs font-bold text-emerald-600 transition group-hover:text-emerald-700 min-h-[36px] py-1"
           >
             <span>Explore Verified Menu</span>
             <FiArrowRight

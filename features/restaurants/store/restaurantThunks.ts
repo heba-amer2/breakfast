@@ -81,27 +81,66 @@ export const createAdminRestaurant = createAsyncThunk(
       dispatch(setRestaurantLoading(true));
       dispatch(setRestaurantError(null));
 
-      const body = {
-        name: payload.name.trim(),
-        phone: payload.phone?.trim() || undefined,
-        menu: Array.isArray(payload.menu)
-          ? payload.menu.map((item) => ({
+      const validUserMenu = Array.isArray(payload.menu)
+        ? payload.menu
+            .filter(
+              (item) =>
+                item.name?.trim() &&
+                !isNaN(Number(item.verifiedPrice ?? item.price)) &&
+                Number(item.verifiedPrice ?? item.price) > 0,
+            )
+            .map((item) => ({
               name: item.name.trim(),
               verifiedPrice: Number(item.verifiedPrice ?? item.price ?? 0),
             }))
-          : [],
+        : [];
+
+      const hasUserMenu = validUserMenu.length > 0;
+
+      // The backend requires at least one menu item during initial restaurant creation.
+      // If the admin leaves initial dishes empty (optional), we create with a temporary placeholder
+      // and immediately remove it, ensuring the restaurant is created with 0 dishes as intended.
+      const initialMenu = hasUserMenu
+        ? validUserMenu
+        : [{ name: "__initial_placeholder__", verifiedPrice: 1 }];
+
+      const body = {
+        name: payload.name.trim(),
+        phone: payload.phone?.trim() || undefined,
+        menu: initialMenu,
       };
 
-      const data = await apiRequest<RestaurantResponse>("/api/admin/restaurants", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }, true);
+      const data = await apiRequest<RestaurantResponse>(
+        "/api/admin/restaurants",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        },
+        true,
+      );
+
+      // If placeholder was used, delete the placeholder menu item immediately
+      if (!hasUserMenu && Array.isArray(data.menu) && data.menu.length > 0) {
+        const placeholderItem = data.menu[0];
+        try {
+          await apiRequest<void>(
+            `/api/admin/restaurants/${data.id}/menu/${placeholderItem.id}`,
+            { method: "DELETE" },
+            true,
+          );
+          data.menu = [];
+          data.menuItemCount = 0;
+        } catch {
+          // If delete fails, proceed gracefully
+        }
+      }
 
       // Re-fetch all restaurants so state is updated
       await dispatch(fetchRestaurants());
       return data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create restaurant";
+      const message =
+        error instanceof Error ? error.message : "Failed to create restaurant";
       dispatch(setRestaurantError(message));
       return rejectWithValue(message);
     } finally {

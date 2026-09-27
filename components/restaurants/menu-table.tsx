@@ -49,14 +49,14 @@ export function MenuTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-140 text-left text-sm">
+      <table className="w-full sm:min-w-140 text-left text-sm">
         <thead>
           <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            <th className="px-5 py-3.5">Dish Item</th>
-            <th className="px-5 py-3.5">Category</th>
-            <th className="px-5 py-3.5 font-bold text-slate-700">Verified Price</th>
-            <th className="px-5 py-3.5">Verification Date</th>
-            <th className="px-5 py-3.5 text-right">Action</th>
+            <th className="px-3 sm:px-5 py-3.5">Dish Item</th>
+            <th className="hidden sm:table-cell px-5 py-3.5">Category</th>
+            <th className="px-3 sm:px-5 py-3.5 font-bold text-slate-700">Verified Price</th>
+            <th className="hidden md:table-cell px-5 py-3.5">Verification Date</th>
+            <th className="px-3 sm:px-5 py-3.5 text-right">Action</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -71,17 +71,26 @@ export function MenuTable({
                 key={item.id ?? `${item.name}-${index}`}
                 className="group transition hover:bg-emerald-50/30"
               >
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-base shadow-2xs group-hover:bg-emerald-50 group-hover:text-emerald-800 transition-colors">
+                <td className="px-3 sm:px-5 py-3.5">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <span className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm sm:text-base shadow-2xs group-hover:bg-emerald-50 group-hover:text-emerald-800 transition-colors">
                       {icon}
                     </span>
-                    <div>
-                      <p className="font-semibold text-slate-900 group-hover:text-emerald-900 transition-colors">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900 group-hover:text-emerald-900 transition-colors line-clamp-1">
                         {item.name}
                       </p>
+                      <div className="flex items-center gap-1.5 sm:hidden text-[10px] text-slate-400">
+                        <span className="font-medium text-slate-500">{category}</span>
+                        {inCart > 0 ? (
+                          <>
+                            <span>&middot;</span>
+                            <span className="font-bold text-emerald-700">{inCart} in order</span>
+                          </>
+                        ) : null}
+                      </div>
                       {inCart > 0 ? (
-                        <span className="text-[10px] font-bold text-emerald-700">
+                        <span className="hidden sm:inline-block text-[10px] font-bold text-emerald-700">
                           {inCart} in your order
                         </span>
                       ) : null}
@@ -89,19 +98,19 @@ export function MenuTable({
                   </div>
                 </td>
 
-                <td className="px-5 py-3.5">
+                <td className="hidden sm:table-cell px-5 py-3.5">
                   <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
                     {category}
                   </span>
                 </td>
 
-                <td className="px-5 py-3.5">
-                  <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2.5 py-1 text-sm font-bold tabular-nums text-emerald-800 border border-emerald-100/80">
+                <td className="px-3 sm:px-5 py-3.5">
+                  <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2 sm:px-2.5 py-1 text-xs sm:text-sm font-bold tabular-nums text-emerald-800 border border-emerald-100/80">
                     {formatMoney(item.verifiedPrice)}
                   </span>
                 </td>
 
-                <td className="px-5 py-3.5 text-slate-500">
+                <td className="hidden md:table-cell px-5 py-3.5 text-slate-500">
                   {verifiedOn ? (
                     <span className="inline-flex items-center gap-1.5 text-xs text-slate-600">
                       <FiClock size={13} className="text-slate-400" />
@@ -115,12 +124,12 @@ export function MenuTable({
                   )}
                 </td>
 
-                <td className="px-5 py-3.5 text-right">
+                <td className="px-3 sm:px-5 py-3.5 text-right">
                   {!readOnly && onAddToCart ? (
                     <button
                       type="button"
                       onClick={() => onAddToCart(item)}
-                      className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 active:scale-95 cursor-pointer"
+                      className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 active:scale-95 cursor-pointer"
                     >
                       <FiPlus size={13} />
                       <span>{inCart > 0 ? "Add More" : "Add"}</span>
@@ -128,13 +137,13 @@ export function MenuTable({
                   ) : !readOnly && activeRoomId ? (
                     <Link
                       href={`/user/rooms/${activeRoomId}`}
-                      className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 active:scale-95"
+                      className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 active:scale-95"
                     >
                       <FiPlus size={13} />
                       <span>Order</span>
                     </Link>
                   ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 sm:px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
                       <FiCheckCircle size={12} />
                       Verified
                     </span>

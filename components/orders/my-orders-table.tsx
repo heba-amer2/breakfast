@@ -47,85 +47,158 @@ export function MyOrdersTable({ rooms, loading }: MyOrdersTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] text-left text-sm">
-        <thead>
-          <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            <th className="px-5 py-3">Restaurant</th>
-            <th className="px-4 py-3">Date</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Receipt Total</th>
-            <th className="px-5 py-3 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {rooms.map((room) => {
-            const canViewBill =
-              room.status === "PENDING_ADMIN_APPROVAL" ||
-              room.status === "APPROVED_AND_CLOSED" ||
-              room.status === "CLOSED";
+    <>
+      {/* Mobile Card List (< sm: 320px–639px) */}
+      <div className="divide-y divide-slate-100 sm:hidden">
+        {rooms.map((room) => {
+          const canViewBill =
+            room.status === "PENDING_ADMIN_APPROVAL" ||
+            room.status === "APPROVED_AND_CLOSED" ||
+            room.status === "CLOSED";
 
-            return (
-              <tr
-                key={room.id}
-                className="group transition-colors hover:bg-slate-50/80"
-              >
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100 shadow-2xs">
-                      <FiCoffee size={16} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                        {room.restaurantName}
-                      </p>
-                      <p className="line-clamp-1 max-w-xs text-xs text-slate-400">
-                        {room.description || "Office breakfast order"}
-                      </p>
-                    </div>
+          return (
+            <div key={room.id} className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100 shadow-2xs">
+                    <FiCoffee size={16} />
                   </div>
-                </td>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900 truncate">
+                      {room.restaurantName}
+                    </p>
+                    <p className="text-[11px] text-slate-400 truncate">
+                      {formatDateTime(room.createdAt ?? room.finalizedAt)}
+                    </p>
+                  </div>
+                </div>
+                <StatusChip status={room.status} size="sm" />
+              </div>
 
-                <td className="px-4 py-3.5 whitespace-nowrap tabular-nums text-xs text-slate-600">
-                  {formatDateTime(room.createdAt ?? room.finalizedAt)}
-                </td>
+              {room.description ? (
+                <p className="line-clamp-1 text-xs text-slate-500">
+                  {room.description}
+                </p>
+              ) : null}
 
-                <td className="px-4 py-3.5 whitespace-nowrap">
-                  <StatusChip status={room.status} size="sm" />
-                </td>
+              <div className="flex items-center justify-between border-t border-slate-100/80 pt-2.5">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Receipt Total
+                  </span>
+                  <span className="text-sm font-bold tabular-nums text-slate-900">
+                    {typeof room.receiptTotal === "number"
+                      ? formatMoney(room.receiptTotal)
+                      : "Pending Receipt"}
+                  </span>
+                </div>
 
-                <td className="px-4 py-3.5 whitespace-nowrap font-semibold tabular-nums text-slate-800">
-                  {typeof room.receiptTotal === "number"
-                    ? formatMoney(room.receiptTotal)
-                    : "Pending Receipt"}
-                </td>
-
-                <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                  <div className="inline-flex items-center gap-1.5">
-                    {canViewBill ? (
-                      <Link
-                        href={`/user/rooms/${room.id}/my-bill`}
-                        className="inline-flex items-center gap-1 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
-                      >
-                        <FiFileText size={12} />
-                        <span>My Bill</span>
-                      </Link>
-                    ) : null}
-
+                <div className="flex items-center gap-2">
+                  {canViewBill ? (
                     <Link
-                      href={`/user/rooms/${room.id}`}
-                      className="inline-flex items-center gap-1 rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                      href={`/user/rooms/${room.id}/my-bill`}
+                      className="inline-flex items-center gap-1 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 min-h-[34px]"
                     >
-                      <span>{room.status === "OPEN" ? "Order" : "View"}</span>
-                      <FiArrowRight size={13} />
+                      <FiFileText size={12} />
+                      <span>My Bill</span>
                     </Link>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                  ) : null}
+
+                  <Link
+                    href={`/user/rooms/${room.id}`}
+                    className="inline-flex items-center gap-1 rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 min-h-[34px]"
+                  >
+                    <span>{room.status === "OPEN" ? "Order" : "View"}</span>
+                    <FiArrowRight size={13} />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop / Tablet Table (>= sm: 640px+) */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className="w-full min-w-[760px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <th className="px-5 py-3">Restaurant</th>
+              <th className="px-4 py-3">Date</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Receipt Total</th>
+              <th className="px-5 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {rooms.map((room) => {
+              const canViewBill =
+                room.status === "PENDING_ADMIN_APPROVAL" ||
+                room.status === "APPROVED_AND_CLOSED" ||
+                room.status === "CLOSED";
+
+              return (
+                <tr
+                  key={room.id}
+                  className="group transition-colors hover:bg-slate-50/80"
+                >
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100 shadow-2xs">
+                        <FiCoffee size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                          {room.restaurantName}
+                        </p>
+                        <p className="line-clamp-1 max-w-xs text-xs text-slate-400">
+                          {room.description || "Office breakfast order"}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="px-4 py-3.5 whitespace-nowrap tabular-nums text-xs text-slate-600">
+                    {formatDateTime(room.createdAt ?? room.finalizedAt)}
+                  </td>
+
+                  <td className="px-4 py-3.5 whitespace-nowrap">
+                    <StatusChip status={room.status} size="sm" />
+                  </td>
+
+                  <td className="px-4 py-3.5 whitespace-nowrap font-semibold tabular-nums text-slate-800">
+                    {typeof room.receiptTotal === "number"
+                      ? formatMoney(room.receiptTotal)
+                      : "Pending Receipt"}
+                  </td>
+
+                  <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                    <div className="inline-flex items-center gap-1.5">
+                      {canViewBill ? (
+                        <Link
+                          href={`/user/rooms/${room.id}/my-bill`}
+                          className="inline-flex items-center gap-1 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
+                        >
+                          <FiFileText size={12} />
+                          <span>My Bill</span>
+                        </Link>
+                      ) : null}
+
+                      <Link
+                        href={`/user/rooms/${room.id}`}
+                        className="inline-flex items-center gap-1 rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                      >
+                        <span>{room.status === "OPEN" ? "Order" : "View"}</span>
+                        <FiArrowRight size={13} />
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

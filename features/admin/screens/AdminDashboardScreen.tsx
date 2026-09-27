@@ -94,9 +94,9 @@ export default function AdminDashboardScreen() {
         subtitle="Manage active office rooms, vendor receipt entries, and team bill approvals."
         tag="ADMIN OPS"
         actions={
-          <Link href="/admin/open-new-room">
-            <Button size="sm" variant="primary">
-              <span className="inline-flex items-center gap-1.5">
+          <Link href="/admin/open-new-room" className="w-full sm:w-auto">
+            <Button size="sm" variant="primary" className="w-full sm:w-auto min-h-9.5 sm:min-h-13">
+              <span className="inline-flex items-center justify-center gap-1.5">
                 <FiPlusCircle size={15} />
                 Open Breakfast Room
               </span>
@@ -105,7 +105,7 @@ export default function AdminDashboardScreen() {
         }
       />
 
-      <PageContainer className="space-y-6 pb-12">
+      <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
         {error ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
@@ -113,7 +113,7 @@ export default function AdminDashboardScreen() {
         ) : null}
 
         {/* 4 Operations KPI Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="hidden lg:grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Live Rooms Open"
             value={loading ? "—" : openRooms.length}
@@ -126,7 +126,7 @@ export default function AdminDashboardScreen() {
             label="Need Receipt"
             value={loading ? "—" : unapproved.length}
             hint="Closed, paper receipt needed"
-            href="/admin/approval-queue"
+            href="/admin/approval-queue?tab=closed&stage=receipt"
             tone="forest"
             icon={<FiFileText size={20} />}
           />
@@ -134,7 +134,7 @@ export default function AdminDashboardScreen() {
             label="Pending Approval"
             value={loading ? "—" : pending.length}
             hint="Receipt entered, awaiting sign-off"
-            href="/admin/approval-queue"
+            href="/admin/approval-queue?tab=closed&stage=approval"
             tone="sage"
             icon={<FiCheckSquare size={20} />}
           />
@@ -149,34 +149,34 @@ export default function AdminDashboardScreen() {
         </div>
 
         {/* Action Shortcuts Strip */}
-        <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 px-2">
+        <div className="hidden sm:flex flex-wrap items-center gap-2 sm:gap-2.5 rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-2xs">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 px-2 w-full sm:w-auto">
             Operations Shortcuts:
           </span>
           <Link
             href="/admin/open-new-room"
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200/80 px-3.5 py-2 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-100"
+            className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200/80 px-3.5 py-2 text-xs font-semibold text-emerald-900 transition hover:bg-emerald-100 min-h-[38px] sm:min-h-[36px]"
           >
             <FiPlusCircle size={14} className="text-emerald-700" />
             + Open New Room
           </Link>
           <Link
-            href="/admin/approval-queue"
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200"
+            href="/admin/approval-queue?tab=closed"
+            className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200 min-h-[38px] sm:min-h-[36px]"
           >
             <FiCheckSquare size={14} className="text-emerald-600" />
             Approvals Pipeline ({unapproved.length + pending.length})
           </Link>
           <Link
             href="/admin/restaurants"
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200"
+            className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200 min-h-[38px] sm:min-h-[36px]"
           >
             <FiCoffee size={14} className="text-emerald-700" />
             Restaurants &amp; Menus
           </Link>
           <Link
             href="/admin/users-management"
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200"
+            className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200 min-h-[38px] sm:min-h-[36px]"
           >
             <FiUsers size={14} className="text-slate-600" />
             Team Roles
@@ -259,9 +259,9 @@ export default function AdminDashboardScreen() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Link href={`/admin/rooms/${room.id}/summary`}>
-                        <Button size="sm" variant="secondary">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
+                      <Link href={`/admin/rooms/${room.id}/summary`} className="flex-1 sm:flex-none">
+                        <Button size="sm" variant="secondary" fullWidth className="sm:w-auto min-h-[36px]">
                           Summary
                         </Button>
                       </Link>
@@ -273,7 +273,7 @@ export default function AdminDashboardScreen() {
                           setCloseError(null);
                           setClosingRoom(room);
                         }}
-                        className="cursor-pointer"
+                        className="cursor-pointer flex-1 sm:flex-none min-h-[36px]"
                       >
                         <span className="inline-flex items-center gap-1 font-semibold">
                           <FiLock size={12} />
@@ -300,7 +300,7 @@ export default function AdminDashboardScreen() {
               </div>
 
               <Link
-                href="/admin/approval-queue"
+                href="/admin/approval-queue?tab=closed"
                 className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700"
               >
                 <span>Full Queue ({unapproved.length + pending.length})</span>
@@ -346,16 +346,17 @@ export default function AdminDashboardScreen() {
                         </p>
                       </div>
 
-                      <div className="shrink-0">
+                      <div className="shrink-0 w-full sm:w-auto">
                         <Link
                           href={
                             needsReceipt
                               ? `/admin/rooms/${room.id}/receipt`
                               : `/admin/rooms/${room.id}/approval`
                           }
+                          className="w-full sm:w-auto block"
                         >
-                          <Button size="sm" variant="primary">
-                            <span className="inline-flex items-center gap-1">
+                          <Button size="sm" variant="primary" className="w-full sm:w-auto min-h-[36px]">
+                            <span className="inline-flex items-center justify-center gap-1">
                               {needsReceipt ? "Enter Receipt" : "Sign-Off Bill"}
                               <FiArrowRight size={13} />
                             </span>
@@ -403,7 +404,7 @@ export default function AdminDashboardScreen() {
             Are you sure you want to manually close this room? Team members will immediately be blocked from adding or changing orders.
           </p>
 
-          <div className="flex items-center justify-end gap-2.5 pt-2">
+          <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2">
             <Button
               variant="secondary"
               size="sm"
@@ -412,6 +413,7 @@ export default function AdminDashboardScreen() {
                 setCloseError(null);
               }}
               disabled={isClosing}
+              className="flex-1 sm:flex-none"
             >
               Cancel
             </Button>
@@ -421,6 +423,7 @@ export default function AdminDashboardScreen() {
               size="sm"
               onClick={handleCloseRoom}
               disabled={isClosing}
+              className="flex-1 sm:flex-none"
             >
               <span className="inline-flex items-center gap-1.5 font-bold">
                 {isClosing ? (

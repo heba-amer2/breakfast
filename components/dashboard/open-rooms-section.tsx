@@ -13,7 +13,7 @@ type OpenRoomsSectionProps = {
 
 export function OpenRoomsSection({ rooms, loading }: OpenRoomsSectionProps) {
   return (
-    <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs">
+    <section className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-xs">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

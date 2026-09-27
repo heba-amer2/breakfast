@@ -117,7 +117,7 @@ export default function AdminBillPreviewPage() {
             title="Room not found"
             description="The requested room could not be loaded."
             action={
-              <Link href="/admin/approval-queue">
+              <Link href="/admin/approval-queue?tab=closed">
                 <Button size="sm">Go to Approvals Pipeline</Button>
               </Link>
             }
@@ -178,7 +178,7 @@ export default function AdminBillPreviewPage() {
               </div>
 
               {/* KPI Strip */}
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="mt-6 hidden lg:grid lg:grid-cols-4 gap-3">
                 <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Participants
@@ -291,7 +291,7 @@ export default function AdminBillPreviewPage() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
+                  <table className="w-full min-w-[500px] text-left text-sm">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/75 text-xs font-semibold uppercase tracking-wider text-slate-400">
                         <th className="px-5 py-3.5">User</th>
@@ -339,8 +339,8 @@ export default function AdminBillPreviewPage() {
 
             {/* Workflow Navigation Footer */}
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-              <Link href={`/admin/rooms/${room.id}/summary`}>
-                <Button variant="secondary" size="sm">
+              <Link href={`/admin/rooms/${room.id}/summary`} className="flex-1 sm:flex-none">
+                <Button variant="secondary" size="sm" fullWidth className="sm:w-auto">
                   <span className="inline-flex items-center gap-1.5">
                     <FiArrowLeft size={14} />
                     View Calling Sheet
@@ -348,7 +348,7 @@ export default function AdminBillPreviewPage() {
                 </Button>
               </Link>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 flex-1 sm:flex-none justify-end">
                 {room.status === "CLOSED" ? (
                   <Link href={`/admin/rooms/${room.id}/receipt`}>
                     <Button size="sm" variant="primary">

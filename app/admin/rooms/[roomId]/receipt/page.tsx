@@ -357,9 +357,10 @@ export default function ReceiptEntryPage() {
         actions={
           <Link
             href={`/admin/rooms/${Number.isFinite(roomId) ? roomId : ""}/summary`}
+            className="w-full sm:w-auto"
           >
-            <Button size="sm" variant="secondary">
-              <span className="inline-flex items-center gap-1.5">
+            <Button size="sm" variant="secondary" className="w-full sm:w-auto min-h-[38px] sm:min-h-[36px]">
+              <span className="inline-flex items-center justify-center gap-1.5">
                 <FiArrowLeft size={14} />
                 Back to summary
               </span>
@@ -368,7 +369,7 @@ export default function ReceiptEntryPage() {
         }
       />
 
-      <PageContainer className="pb-12">
+      <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
         {/* Workflow steps visual guide */}
         <div className="mb-6 rounded-[24px] border border-slate-200/80 bg-white p-3 shadow-2xs">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -545,7 +546,7 @@ export default function ReceiptEntryPage() {
               </div>
 
               {/* Room Quick Metrics */}
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="mt-6 hidden lg:grid lg:grid-cols-4 gap-3">
                 <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3.5">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Participants
@@ -711,8 +712,8 @@ export default function ReceiptEntryPage() {
                               </div>
 
                               {/* Right: Receipt Price Input & Line Total */}
-                              <div className="flex items-center gap-4 self-end sm:self-auto">
-                                <div className="w-36">
+                              <div className="flex items-center gap-3 sm:gap-4 self-stretch sm:self-auto justify-between sm:justify-end w-full sm:w-auto pt-2 sm:pt-0 border-t border-slate-100 sm:border-0">
+                                <div className="w-32 sm:w-36 flex-1 sm:flex-none">
                                   <label
                                     htmlFor={`price-input-${index}`}
                                     className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400"
@@ -750,7 +751,7 @@ export default function ReceiptEntryPage() {
                                   </div>
                                 </div>
 
-                                <div className="min-w-[90px] text-right">
+                                <div className="min-w-[80px] sm:min-w-[90px] text-right">
                                   <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                     Line total
                                   </span>
@@ -948,7 +949,7 @@ export default function ReceiptEntryPage() {
                     variant="secondary"
                     onClick={handlePreview}
                     disabled={previewing || !Number.isFinite(roomId) || items.length === 0}
-                    className="cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    className="cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 min-h-[38px] sm:min-h-[36px]"
                   >
                     <span className="inline-flex items-center gap-2 text-xs font-semibold">
                       <FiRefreshCw
@@ -1066,7 +1067,7 @@ export default function ReceiptEntryPage() {
                       href={`/admin/rooms/${Number.isFinite(roomId) ? roomId : ""}/approval`}
                       className="block"
                     >
-                      <Button fullWidth variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 cursor-pointer">
+                      <Button fullWidth variant="ghost" size="sm" className="text-slate-600 hover:text-slate-900 cursor-pointer min-h-[38px] sm:min-h-[36px]">
                         <span className="inline-flex items-center gap-1.5">
                           Continue to approval
                           <FiArrowRight size={14} />

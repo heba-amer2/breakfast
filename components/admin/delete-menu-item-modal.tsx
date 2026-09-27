@@ -95,13 +95,15 @@ export function DeleteMenuItemModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-2.5 pt-3 border-t border-slate-100">
           <Button
             type="button"
             variant="secondary"
             size="sm"
             onClick={onClose}
             disabled={loading}
+            fullWidth
+            className="sm:w-auto"
           >
             Cancel
           </Button>
@@ -111,6 +113,8 @@ export function DeleteMenuItemModal({
             size="sm"
             onClick={handleDelete}
             disabled={loading}
+            fullWidth
+            className="sm:w-auto"
           >
             {loading ? "Removing…" : "Remove Menu Item"}
           </Button>

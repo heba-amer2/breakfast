@@ -96,7 +96,7 @@ export default function CartPage() {
         ) : null}
 
         {/* Room Header Info */}
-        <div className="flex flex-col gap-4 rounded-3xl border border-slate-200/90 bg-white p-6 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-xs sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <StatusChip status={room?.status} />
@@ -175,63 +175,109 @@ export default function CartPage() {
                 />
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[500px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/30">
-                      <th className="px-5 py-3">Dish / Item</th>
-                      <th className="px-4 py-3">Price</th>
-                      <th className="px-4 py-3 text-center">Qty</th>
-                      <th className="px-4 py-3">Line Total</th>
-                      {isOpen ? (
-                        <th className="px-4 py-3 text-right">Remove</th>
-                      ) : null}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {cart.map((item) => {
-                      const lineTotal =
-                        typeof item.lineTotal === "number"
-                          ? item.lineTotal
-                          : item.priceAtOrder * item.quantity;
+              <>
+                {/* Mobile Card List (< sm) */}
+                <div className="divide-y divide-slate-100 sm:hidden">
+                  {cart.map((item) => {
+                    const lineTotal =
+                      typeof item.lineTotal === "number"
+                        ? item.lineTotal
+                        : item.priceAtOrder * item.quantity;
 
-                      return (
-                        <tr key={item.id} className="hover:bg-slate-50/70 transition">
-                          <td className="px-5 py-3.5">
-                            <p className="font-semibold text-slate-900">
+                    return (
+                      <div key={item.id} className="p-4 space-y-2.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-slate-900 leading-snug">
                               {item.itemName}
                             </p>
-                            <p className="text-[11px] text-slate-400">
+                            <p className="text-[11px] text-slate-400 mt-0.5">
                               Order #{item.id}
                             </p>
-                          </td>
-                          <td className="px-4 py-3.5 tabular-nums text-slate-700">
-                            {formatMoney(item.priceAtOrder)}
-                          </td>
-                          <td className="px-4 py-3.5 text-center font-bold tabular-nums text-slate-900">
-                            {item.quantity}
-                          </td>
-                          <td className="px-4 py-3.5 font-bold tabular-nums text-slate-900">
-                            {formatMoney(lineTotal)}
-                          </td>
+                          </div>
                           {isOpen ? (
-                            <td className="px-4 py-3.5 text-right">
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(item.id)}
-                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
-                                aria-label="Remove item"
-                              >
-                                <FiTrash2 size={15} />
-                              </button>
-                            </td>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(item.id)}
+                              className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
+                              aria-label="Remove item"
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
                           ) : null}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-slate-100/80 pt-2 text-xs">
+                          <span className="text-slate-500 tabular-nums">
+                            {formatMoney(item.priceAtOrder)} &times; {item.quantity}
+                          </span>
+                          <span className="font-bold text-slate-900 text-sm tabular-nums">
+                            {formatMoney(lineTotal)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Tablet & Desktop Table (>= sm) */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full min-w-[500px] text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/30">
+                        <th className="px-5 py-3">Dish / Item</th>
+                        <th className="px-4 py-3">Price</th>
+                        <th className="px-4 py-3 text-center">Qty</th>
+                        <th className="px-4 py-3">Line Total</th>
+                        {isOpen ? (
+                          <th className="px-4 py-3 text-right">Remove</th>
+                        ) : null}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {cart.map((item) => {
+                        const lineTotal =
+                          typeof item.lineTotal === "number"
+                            ? item.lineTotal
+                            : item.priceAtOrder * item.quantity;
+
+                        return (
+                          <tr key={item.id} className="hover:bg-slate-50/70 transition">
+                            <td className="px-5 py-3.5">
+                              <p className="font-semibold text-slate-900">
+                                {item.itemName}
+                              </p>
+                              <p className="text-[11px] text-slate-400">
+                                Order #{item.id}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3.5 tabular-nums text-slate-700">
+                              {formatMoney(item.priceAtOrder)}
+                            </td>
+                            <td className="px-4 py-3.5 text-center font-bold tabular-nums text-slate-900">
+                              {item.quantity}
+                            </td>
+                            <td className="px-4 py-3.5 font-bold tabular-nums text-slate-900">
+                              {formatMoney(lineTotal)}
+                            </td>
+                            {isOpen ? (
+                              <td className="px-4 py-3.5 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(item.id)}
+                                  className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
+                                  aria-label="Remove item"
+                                >
+                                  <FiTrash2 size={15} />
+                                </button>
+                              </td>
+                            ) : null}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
 

@@ -74,7 +74,7 @@ export default function LoginScreen() {
         </div>
       </div>
 
-      <div className="flex w-full items-center justify-center p-6 sm:p-8 lg:w-1/2">
+      <div className="flex w-full items-center justify-center p-4 sm:p-8 lg:w-1/2">
         <div className="w-full max-w-sm">
           <div className="mb-8 text-center">
             <h1 className="mb-1 text-2xl font-bold text-slate-800">
