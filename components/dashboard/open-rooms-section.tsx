@@ -41,7 +41,7 @@ export function OpenRoomsSection({ rooms, loading }: OpenRoomsSectionProps) {
       {loading ? (
         <div className="space-y-3">
           <Skeleton className="h-28 w-full" />
-          <Skeleton className="h-28 w-full" />
+          
         </div>
       ) : rooms.length === 0 ? (
         <EmptyState

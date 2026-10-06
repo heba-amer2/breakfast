@@ -41,8 +41,6 @@ export function MyRecentRoomsTable({ rooms, loading }: MyRecentRoomsTableProps) 
       {loading ? (
         <div className="space-y-2.5">
           <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
         </div>
       ) : rooms.length === 0 ? (
         <EmptyState
