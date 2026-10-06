@@ -175,7 +175,7 @@ export default function RoomsScreen() {
                   <StatusChip status={item.status} size="sm" />
                 </div>
                 <p className="mt-2 text-xl sm:text-2xl font-extrabold tabular-nums text-slate-900 truncate">
-                  {loading ? "GÇö" : count}
+                  {loading ? "â€”" : count}
                 </p>
               </button>
             );
@@ -193,7 +193,7 @@ export default function RoomsScreen() {
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder={`Search in ${currentTab === "OPEN" ? "open" : "closed"} roomsGÇª`}
+              placeholder={`Search in ${currentTab === "OPEN" ? "open" : "closed"} roomsGÃ‡Âª`}
               className="h-10 w-full rounded-xl border border-slate-200/90 bg-slate-50/50 pl-9 pr-3 text-xs sm:text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
             />
           </div>
@@ -210,7 +210,7 @@ export default function RoomsScreen() {
               className="h-10 rounded-xl border border-slate-200/90 bg-slate-50/50 px-3 text-xs font-medium text-slate-700 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 cursor-pointer"
             >
               <option value="newest">Newest First</option>
-              <option value="name">Restaurant AGÇôZ</option>
+              <option value="name">Restaurant Aâ€”Z</option>
               {currentTab === "OPEN" ? (
                 <option value="countdown">Ending Soonest</option>
               ) : null}

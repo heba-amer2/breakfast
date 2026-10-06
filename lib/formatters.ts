@@ -14,7 +14,7 @@ export function formatDateTime(
   locale?: string,
   options?: Intl.DateTimeFormatOptions
 ): string {
-  // Resolve arrays GÇô use the first element.
+  // Resolve arrays GÃ‡Ã´ use the first element.
   if (Array.isArray(date)) {
     date = date[0];
   }
