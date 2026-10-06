@@ -29,7 +29,7 @@ export default function UserDashboardScreen() {
   const myRooms = useAppSelector((state) => state.rooms.myRooms);
   const roomsError = useAppSelector((state) => state.rooms.error);
 
-  const { user } = useAuthFetch(async () => {
+  const { user, isAuthenticated } = useAuthFetch(async () => {
     setLoading(true);
     await Promise.all([
       dispatch(fetchRooms(undefined)),
@@ -39,7 +39,7 @@ export default function UserDashboardScreen() {
   });
 
   // Real-time tracking of active/open rooms
-  const { activeCount } = useActiveRoomsTracker(rooms);
+  const { activeRooms, activeCount } = useActiveRoomsTracker(rooms);
 
   const awaitingPayment = useMemo(
     () =>
@@ -72,80 +72,129 @@ export default function UserDashboardScreen() {
       />
 
       <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
-        {/* Error alert banner */}
+        {!isAuthenticated ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            Checking your session…
+          </div>
+        ) : null}
+
         {roomsError ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-800 shadow-sm">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {roomsError}
           </div>
         ) : null}
 
-        {/* 4 Primary Stats Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+        {/* Quick KPI Stat Cards */}
+        <div className="hidden sm:grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <StatCard
-            label="Open Now"
-            value={activeCount}
-            hint="Accepting team orders right now"
-            icon={<FiCoffee size={20} />}
+            label="Live Rooms Open"
+            value={loading ? "—" : activeCount}
+            hint="Currently accepting orders"
+            href="/user/rooms"
             tone="emerald"
-          />
-          <StatCard
-            label="My Orders"
-            value={myRooms.length}
-            hint="Rooms you participated in"
-            icon={<FiShoppingBag size={20} />}
-            tone="sage"
-          />
-          <StatCard
-            label="Awaiting Split"
-            value={awaitingPayment}
-            hint="Closed rooms awaiting receipt entry or approval"
-            icon={<FiClock size={20} />}
-            tone="amber"
-          />
-          <StatCard
-            label="Available Restaurants"
-            value={
-              Array.from(
-                new Set(rooms.map((r) => r.restaurantName).filter(Boolean)),
-              ).length
-            }
-            hint="Venues available for ordering"
             icon={<FiGrid size={20} />}
-            tone="default"
+          />
+          <StatCard
+            label="My Breakfast Orders"
+            value={loading ? "—" : myRooms.length}
+            hint="Rooms you have joined"
+            href="/user/my-orders"
+            tone="forest"
+            icon={<FiShoppingBag size={20} />}
+          />
+          <StatCard
+            label="Awaiting Split / Pay"
+            value={loading ? "—" : awaitingPayment}
+            hint="Closed or pending receipt split"
+            href="/user/my-orders"
+            tone="sage"
+            icon={<FiClock size={20} />}
           />
         </div>
 
-        {/* Live Active Rooms Section */}
-        <OpenRoomsSection
-          rooms={rooms}
-          loading={loading}
-        />
+        {/* Fast Action Shortcuts */}
+        <div className="hidden sm:flex flex-wrap items-center gap-2 sm:gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-3 sm:p-3.5 shadow-2xs">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 px-2 w-full sm:w-auto">
+            Quick Actions:
+          </span>
+          <Link
+            href="/user/rooms"
+            className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200 min-h-[38px] sm:min-h-[36px]"
+          >
+            <FiCompass size={14} className="text-emerald-600" />
+            Browse All Rooms
+          </Link>
+          <Link
+            href="/user/restaurants"
+            className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200 min-h-[38px] sm:min-h-[36px]"
+          >
+            <FiCoffee size={14} className="text-emerald-700" />
+            Verified Menus
+          </Link>
+          <Link
+            href="/user/my-orders"
+            className="inline-flex flex-1 sm:flex-none justify-center items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-2 text-xs font-semibold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-900 hover:border-emerald-200 min-h-[38px] sm:min-h-[36px]"
+          >
+            <FiFileText size={14} className="text-emerald-800" />
+            My Order Bills
+          </Link>
+        </div>
 
-        {/* My Recent Orders / Rooms Table */}
-        <MyRecentRoomsTable
-          rooms={myRooms}
-          loading={loading}
-        />
+        {/* Main Grid: Open Rooms & Recent Activity */}
+        <div className="grid gap-4 sm:gap-6 xl:grid-cols-2">
+          <OpenRoomsSection rooms={activeRooms} loading={loading} />
+          <MyRecentRoomsTable rooms={myRooms} loading={loading} />
+        </div>
 
-        {/* Quick Help & Workflow Banner */}
-        <div className="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-slate-900">
-                How does breakfast ordering work?
-              </h3>
-              <p className="text-xs text-slate-500 max-w-xl">
-                1. Join an open room &rarr; 2. Add dishes with custom notes &rarr; 3. Once closed, admin records the receipt &rarr; 4. Check your split bill share under My Orders.
-              </p>
+        {/* How It Works Guide Strip */}
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-2xs">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">
+            How Smart Office Breakfast Works
+          </h3>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100/80 text-emerald-800 text-xs font-bold">
+                1
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  Pick your breakfast
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">
+                  Join any open room and add menu items or custom dishes before the countdown ends.
+                </p>
+              </div>
             </div>
-            <Link href="/user/orders" className="shrink-0">
-              <Button variant="secondary" size="sm">
-                <span className="inline-flex items-center gap-1.5">
-                  <FiFileText size={13} />
-                  My Split Bills
-                </span>
-              </Button>
-            </Link>
+
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-900 text-white text-xs font-bold shadow-xs">
+                2
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  Receipt verification
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">
+                  When delivery arrives, an admin enters the exact paper receipt prices into the system.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-xs font-bold">
+                3
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  Automatic equal split
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">
+                  Delivery is split equally among all eaters. Check &ldquo;My Bill&rdquo; to see your exact share.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </PageContainer>

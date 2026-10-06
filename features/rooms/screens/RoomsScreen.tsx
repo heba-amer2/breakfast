@@ -56,7 +56,7 @@ export default function RoomsScreen() {
     setLoading(false);
   });
 
-  const { activeRooms, activeCount, closedRooms } =
+  const { activeRooms, activeCount, closedRooms, closedCount } =
     useActiveRoomsTracker(rooms);
 
   const sourceRooms = currentTab === "OPEN" ? activeRooms : closedRooms;

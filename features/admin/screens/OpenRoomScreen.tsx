@@ -5,16 +5,17 @@ import { useRouter } from "next/navigation";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import {
   FiAlertTriangle,
+  FiCheckCircle,
   FiClock,
   FiInfo,
   FiPlus,
+  FiTrash2,
 } from "react-icons/fi";
+import { LuUtensils } from "react-icons/lu";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { TopBar } from "@/components/layout/top-bar";
 import { Button, Input } from "@/components/ui";
-import { NewRestaurantMenuFields } from "@/features/admin/components/NewRestaurantMenuFields";
-import { OpenRoomPreview } from "@/features/admin/components/OpenRoomPreview";
 import { useAuthFetch } from "@/features/shared/hooks/useAuthFetch";
 import {
   createAdminRestaurant,
@@ -24,7 +25,7 @@ import { createRoom, fetchRooms } from "@/features/rooms/store/roomThunks";
 import { useAppDispatch, useAppSelector } from "@/features/shared/store/hooks";
 import type { MenuItemDto } from "@/features/restaurants/store/restaurantSlice";
 
-export type OpenRoomFormValues = {
+type OpenRoomFormValues = {
   restaurantId: string;
   restaurantName: string;
   restaurantPhone: string;
@@ -359,13 +360,131 @@ export default function OpenRoomScreen() {
                       </div>
                     </div>
 
-                    <NewRestaurantMenuFields
-                      fields={fields}
-                      append={append}
-                      remove={remove}
-                      register={register}
-                      errors={errors}
-                    />
+                    {/* Initial Menu Items Section */}
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 space-y-4">
+                      <div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-800">
+                              Initial Menu Items
+                            </h3>
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              These items will be added to the restaurant&apos;s verified menu and made available immediately in the room. (Optional)
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => append({ name: "", price: "" })}
+                            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-white px-3.5 py-2 text-xs font-semibold text-emerald-800 shadow-2xs hover:bg-emerald-50 hover:border-emerald-400 transition cursor-pointer w-full sm:w-auto min-h-[38px] sm:min-h-[36px]"
+                          >
+                            <FiPlus size={14} />
+                            <span>+ Add Menu Item</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {fields.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-white/70 p-4 text-center">
+                          <p className="text-xs text-slate-400 italic">
+                            No initial menu items added.
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            You can open the room without starting dishes, add them anytime later from Restaurants &amp; Menus, or let users add custom dishes.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {fields.map((field, index) => (
+                            <div
+                              key={field.id}
+                              className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs space-y-3"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                                  Item {index + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => remove(index)}
+                                  aria-label={`Remove item ${index + 1}`}
+                                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition cursor-pointer"
+                                >
+                                  <FiTrash2 size={13} />
+                                  <span>Remove</span>
+                                </button>
+                              </div>
+
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div>
+                                  <label
+                                    htmlFor={`initialMenu-${index}-name`}
+                                    className="mb-1 block text-xs font-medium text-slate-700"
+                                  >
+                                    Item name *
+                                  </label>
+                                  <input
+                                    id={`initialMenu-${index}-name`}
+                                    placeholder="e.g. Foul Mudammas, Falafel"
+                                    maxLength={150}
+                                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                                    {...register(
+                                      `initialMenu.${index}.name` as const,
+                                      {
+                                        required: "Item name is required",
+                                        validate: (val) =>
+                                          Boolean(val?.trim()) ||
+                                          "Name cannot be empty",
+                                      },
+                                    )}
+                                  />
+                                  {errors.initialMenu?.[index]?.name ? (
+                                    <p className="mt-1 text-[10px] font-medium text-rose-600">
+                                      {errors.initialMenu[index]?.name?.message}
+                                    </p>
+                                  ) : null}
+                                </div>
+
+                                <div>
+                                  <label
+                                    htmlFor={`initialMenu-${index}-price`}
+                                    className="mb-1 block text-xs font-medium text-slate-700"
+                                  >
+                                    Price (EGP) *
+                                  </label>
+                                  <input
+                                    id={`initialMenu-${index}-price`}
+                                    type="number"
+                                    step="0.5"
+                                    min="0.01"
+                                    max="100000"
+                                    placeholder="e.g. 30"
+                                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                                    {...register(
+                                      `initialMenu.${index}.price` as const,
+                                      {
+                                        required: "Price is required",
+                                        validate: (val) => {
+                                          const num = Number(val);
+                                          if (isNaN(num) || num <= 0) return "Price must be > 0";
+                                          if (num > 100000) return "Price cannot exceed 100k";
+                                          return true;
+                                        },
+                                      },
+                                    )}
+                                  />
+                                  {errors.initialMenu?.[index]?.price ? (
+                                    <p className="mt-1 text-[10px] font-medium text-rose-600">
+                                      {errors.initialMenu[index]?.price?.message}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -432,13 +551,76 @@ export default function OpenRoomScreen() {
               </div>
 
               {/* Desktop-Only Sidebar Preview (>= lg) */}
-              <OpenRoomPreview
-                previewName={previewName}
-                description={description}
-                mode={mode}
-                fieldsCount={fields.length}
-                isSubmitting={isSubmitting}
-              />
+              <aside className="hidden lg:block rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                    <LuUtensils size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      Preview
+                    </p>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      Room overview
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-white p-4 shadow-sm">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                    Restaurant
+                  </p>
+                  <p className="mt-2 text-xl font-bold text-slate-900">
+                    {previewName}
+                  </p>
+                  <p className="mt-2 text-sm text-slate-500">
+                    {description?.trim() || "No extra notes added yet."}
+                  </p>
+                </div>
+
+                <div className="mt-4 space-y-3 text-sm text-slate-600">
+                  <div className="flex items-center justify-between rounded-2xl bg-white px-3 py-2.5 shadow-sm">
+                    <span>Room status</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                      <FiCheckCircle size={12} />
+                      Ready
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-white px-3 py-2.5 shadow-sm">
+                    <span>Duration</span>
+                    <span className="font-medium text-slate-900">60 min</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-white px-3 py-2.5 shadow-sm">
+                    <span>Order access</span>
+                    <span className="font-medium text-slate-900">Live</span>
+                  </div>
+                  {mode === "new" && fields.length > 0 ? (
+                    <div className="flex items-center justify-between rounded-2xl bg-white px-3 py-2.5 shadow-sm">
+                      <span>Starting dishes</span>
+                      <span className="font-bold text-emerald-800">
+                        {fields.length} {fields.length === 1 ? "item" : "items"}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="mt-5">
+                  <Button
+                    fullWidth
+                    size="lg"
+                    type="submit"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting
+                      ? mode === "new"
+                        ? "Creating & Opening…"
+                        : "Opening…"
+                      : mode === "new"
+                        ? "Create Restaurant & Open Room"
+                        : "Open breakfast room"}
+                  </Button>
+                </div>
+              </aside>
             </div>
           </form>
         </div>

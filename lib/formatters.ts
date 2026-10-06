@@ -10,7 +10,7 @@
  * those. If the input cannot be parsed, an empty string is returned.
  */
 export function formatDateTime(
-  date: unknown,
+  date: any,
   locale?: string,
   options?: Intl.DateTimeFormatOptions
 ): string {
@@ -48,7 +48,7 @@ export function formatDateTime(
  * Accepts number, string, null/undefined, or arrays containing a number.
  */
 export function formatMoney(
-  amount: unknown,
+  amount: any,
   currency: string = 'USD',
   locale?: string
 ): string {
@@ -72,7 +72,7 @@ export function formatMoney(
  * It forwards to `formatDateTime`.
  */
 export function formatVerifiedDate(
-  date: unknown,
+  date: any,
   locale?: string,
   options?: Intl.DateTimeFormatOptions
 ): string {
