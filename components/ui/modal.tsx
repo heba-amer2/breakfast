@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { FiX } from "react-icons/fi";
+
+const emptySubscribe = () => () => {};
+const useMounted = () => useSyncExternalStore(emptySubscribe, () => true, () => false);
 
 type ModalProps = {
   isOpen: boolean;
@@ -35,11 +38,7 @@ export function Modal({
   closeOnEscape = false,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useMounted();
 
   // Lock body scroll while modal is open
   useEffect(() => {
@@ -140,4 +139,3 @@ export function Modal({
   );
 }
 export default Modal;
-

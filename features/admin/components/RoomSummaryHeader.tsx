@@ -16,7 +16,6 @@ import { formatDateTime, formatMoney } from "@/lib/formatters";
 
 type RoomSummaryHeaderProps = {
   room: RoomResponse;
-  roomId: number;
   isOpen: boolean;
   summary: RoomOrderSummary | null;
   totalItemsCount: number;
@@ -26,7 +25,6 @@ type RoomSummaryHeaderProps = {
 
 export function RoomSummaryHeader({
   room,
-  roomId,
   isOpen,
   summary,
   totalItemsCount,
