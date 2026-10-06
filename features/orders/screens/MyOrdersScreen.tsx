@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { ErrorBanner } from "@/components/ui";
 import { TopBar } from "@/components/layout/top-bar";
 import { MyOrdersTable } from "@/components/orders/my-orders-table";
 import { useAuthFetch } from "@/features/shared/hooks/useAuthFetch";
@@ -70,11 +71,7 @@ export default function MyOrdersScreen() {
       />
 
       <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
-        {error ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {error}
-          </div>
-        ) : null}
+        {error ? <ErrorBanner>{error}</ErrorBanner> : null}
 
         {/* Filter Pills */}
         <div className="flex flex-wrap items-center gap-2">

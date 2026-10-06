@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  FiAlertTriangle,
   FiArrowRight,
   FiCheckSquare,
   FiClock,
@@ -12,15 +11,15 @@ import {
   FiGrid,
   FiLock,
   FiPlusCircle,
-  FiRefreshCw,
   FiUsers,
 } from "react-icons/fi";
 
 import { StatCard } from "@/components/dashboard/stat-card";
 import { PageContainer } from "@/components/layout/page-container";
 import { TopBar } from "@/components/layout/top-bar";
-import { Button, CountdownTimer, EmptyState, Modal, StatusChip } from "@/components/ui";
+import { Button, CountdownTimer, EmptyState, ErrorBanner, StatusChip } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CloseRoomConfirmModal } from "@/features/admin/components/CloseRoomConfirmModal";
 import {
   fetchPendingRooms,
   fetchUnapprovedRooms,
@@ -106,11 +105,7 @@ export default function AdminDashboardScreen() {
       />
 
       <PageContainer className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
-        {error ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {error}
-          </div>
-        ) : null}
+        {error ? <ErrorBanner>{error}</ErrorBanner> : null}
 
         {/* 4 Operations KPI Cards */}
         <div className="hidden sm:grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -214,7 +209,6 @@ export default function AdminDashboardScreen() {
             {loading ? (
               <div className="space-y-3">
                 <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
               </div>
             ) : openRooms.length === 0 ? (
               <EmptyState
@@ -311,7 +305,7 @@ export default function AdminDashboardScreen() {
             {loading ? (
               <div className="space-y-3">
                 <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
+       
               </div>
             ) : [...unapproved, ...pending].length === 0 ? (
               <EmptyState
@@ -372,76 +366,18 @@ export default function AdminDashboardScreen() {
         </div>
       </PageContainer>
 
-      {/* Confirmation Modal for Manual Room Close */}
-      <Modal
+      <CloseRoomConfirmModal
         isOpen={Boolean(closingRoom)}
+        roomId={closingRoom?.id}
+        restaurantName={closingRoom?.restaurantName}
+        error={closeError}
+        isClosing={isClosing}
         onClose={() => {
-          if (!isClosing) {
-            setClosingRoom(null);
-            setCloseError(null);
-          }
+          setClosingRoom(null);
+          setCloseError(null);
         }}
-        title={
-          <div className="flex items-center gap-2 text-rose-700 font-bold">
-            <FiAlertTriangle size={20} className="shrink-0" />
-            <span>Close Breakfast Room #{closingRoom?.id}?</span>
-          </div>
-        }
-        description={
-          closingRoom ? `Stop ordering for ${closingRoom.restaurantName}` : undefined
-        }
-        maxWidth="md"
-      >
-        <div className="space-y-4 pt-1">
-          {closeError ? (
-            <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
-              <FiAlertTriangle size={15} className="shrink-0 text-rose-600" />
-              <span>{closeError}</span>
-            </div>
-          ) : null}
-
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Are you sure you want to manually close this room? Team members will immediately be blocked from adding or changing orders.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setClosingRoom(null);
-                setCloseError(null);
-              }}
-              disabled={isClosing}
-              className="flex-1 sm:flex-none"
-            >
-              Cancel
-            </Button>
-
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleCloseRoom}
-              disabled={isClosing}
-              className="flex-1 sm:flex-none"
-            >
-              <span className="inline-flex items-center gap-1.5 font-bold">
-                {isClosing ? (
-                  <>
-                    <FiRefreshCw size={13} className="animate-spin" />
-                    Closing…
-                  </>
-                ) : (
-                  <>
-                    <FiLock size={13} />
-                    Confirm Close
-                  </>
-                )}
-              </span>
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={handleCloseRoom}
+      />
     </>
   );
 }

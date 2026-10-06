@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FiCheckCircle, FiClock, FiPlus, FiShoppingBag } from "react-icons/fi";
-import { getDishCategory, getDishIcon } from "@/lib/menuCategories";
+import { LuUtensils } from "react-icons/lu";
 import { formatMoney, formatVerifiedDate } from "@/lib/formatters";
 import type { MenuItemDto } from "@/features/restaurants/store/restaurantSlice";
 
@@ -21,8 +21,6 @@ export function MenuItemCard({
   inCartCount = 0,
   readOnly = false,
 }: MenuItemCardProps) {
-  const category = getDishCategory(item.name);
-  const icon = getDishIcon(item.name, 22);
   const verifiedDate = formatVerifiedDate(item.lastVerifiedAt);
 
   return (
@@ -31,17 +29,13 @@ export function MenuItemCard({
         {/* Top bar: Icon & Badges */}
         <div className="flex items-start justify-between gap-2.5 mb-3">
           <div className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-emerald-50 to-teal-50/80 text-emerald-800 ring-1 ring-emerald-200/70 shadow-2xs group-hover:scale-105 transition-transform duration-200">
-            {icon}
+            <LuUtensils size={22} />
           </div>
 
           <div className="flex flex-col items-end gap-1">
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 border border-emerald-200/70">
               <FiCheckCircle size={11} className="text-emerald-600" />
               <span>Verified Price</span>
-            </span>
-
-            <span className="rounded-full bg-slate-100/90 px-2.5 py-0.5 text-[10px] font-semibold text-slate-500">
-              {category}
             </span>
           </div>
         </div>

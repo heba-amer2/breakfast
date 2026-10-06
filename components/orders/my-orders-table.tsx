@@ -19,8 +19,7 @@ export function MyOrdersTable({ rooms, loading }: MyOrdersTableProps) {
     return (
       <div className="space-y-3 p-4">
         <Skeleton className="h-14 w-full" />
-        <Skeleton className="h-14 w-full" />
-        <Skeleton className="h-14 w-full" />
+        
       </div>
     );
   }

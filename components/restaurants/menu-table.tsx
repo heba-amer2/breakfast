@@ -3,10 +3,10 @@
 import React from "react";
 import Link from "next/link";
 import { FiCheckCircle, FiClock, FiHelpCircle, FiPlus } from "react-icons/fi";
+import { LuUtensils } from "react-icons/lu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatMoney, formatVerifiedDate } from "@/lib/formatters";
-import { getDishCategory, getDishIcon } from "@/lib/menuCategories";
 import type { MenuItemDto } from "@/features/restaurants/store/restaurantSlice";
 
 type MenuTableProps = {
@@ -53,7 +53,6 @@ export function MenuTable({
         <thead>
           <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold uppercase tracking-wider text-slate-400">
             <th className="px-3 sm:px-5 py-3.5">Dish Item</th>
-            <th className="hidden sm:table-cell px-5 py-3.5">Category</th>
             <th className="px-3 sm:px-5 py-3.5 font-bold text-slate-700">Verified Price</th>
             <th className="hidden md:table-cell px-5 py-3.5">Verification Date</th>
             <th className="px-3 sm:px-5 py-3.5 text-right">Action</th>
@@ -62,8 +61,6 @@ export function MenuTable({
         <tbody className="divide-y divide-slate-100">
           {items.map((item, index) => {
             const verifiedOn = formatVerifiedDate(item.lastVerifiedAt);
-            const icon = getDishIcon(item.name, 18);
-            const category = getDishCategory(item.name);
             const inCart = inCartCounts[item.name.toLowerCase()] || 0;
 
             return (
@@ -74,34 +71,19 @@ export function MenuTable({
                 <td className="px-3 sm:px-5 py-3.5">
                   <div className="flex items-center gap-2.5 sm:gap-3">
                     <span className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm sm:text-base shadow-2xs group-hover:bg-emerald-50 group-hover:text-emerald-800 transition-colors">
-                      {icon}
+                      <LuUtensils size={18} />
                     </span>
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-900 group-hover:text-emerald-900 transition-colors line-clamp-1">
                         {item.name}
                       </p>
-                      <div className="flex items-center gap-1.5 sm:hidden text-[10px] text-slate-400">
-                        <span className="font-medium text-slate-500">{category}</span>
-                        {inCart > 0 ? (
-                          <>
-                            <span>&middot;</span>
-                            <span className="font-bold text-emerald-700">{inCart} in order</span>
-                          </>
-                        ) : null}
-                      </div>
                       {inCart > 0 ? (
-                        <span className="hidden sm:inline-block text-[10px] font-bold text-emerald-700">
+                        <p className="text-[10px] font-bold text-emerald-700">
                           {inCart} in your order
-                        </span>
+                        </p>
                       ) : null}
                     </div>
                   </div>
-                </td>
-
-                <td className="hidden sm:table-cell px-5 py-3.5">
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
-                    {category}
-                  </span>
                 </td>
 
                 <td className="px-3 sm:px-5 py-3.5">
@@ -157,3 +139,4 @@ export function MenuTable({
     </div>
   );
 }
+

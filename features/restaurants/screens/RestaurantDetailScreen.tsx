@@ -33,12 +33,6 @@ import {
 } from "@/features/restaurants/store/restaurantThunks";
 import { fetchRooms } from "@/features/rooms/store/roomThunks";
 import { useAppDispatch, useAppSelector } from "@/features/shared/store/hooks";
-import {
-  getAvailableCategories,
-  getCategoryIcon,
-  getDishCategory,
-  type DishCategory,
-} from "@/lib/menuCategories";
 import { formatMoney } from "@/lib/formatters";
 
 type SortOption = "price-asc" | "price-desc" | "name";
@@ -58,7 +52,6 @@ export default function RestaurantDetailScreen() {
 
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<DishCategory>("All");
   const [sortKey, setSortKey] = useState<SortOption>("price-asc");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
@@ -89,21 +82,9 @@ export default function RestaurantDetailScreen() {
     );
   }, [rooms, restaurantId]);
 
-  // Dynamically extract categories that actually have items in this menu
-  const availableCategories = useMemo(
-    () => getAvailableCategories(menu),
-    [menu],
-  );
-
   // Filter & sort the menu items
   const filteredMenu = useMemo(() => {
     let list = menu;
-
-    if (selectedCategory !== "All") {
-      list = list.filter(
-        (item) => getDishCategory(item.name) === selectedCategory,
-      );
-    }
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -115,7 +96,7 @@ export default function RestaurantDetailScreen() {
       if (sortKey === "price-desc") return b.verifiedPrice - a.verifiedPrice;
       return a.name.localeCompare(b.name);
     });
-  }, [menu, selectedCategory, search, sortKey]);
+  }, [menu, search, sortKey]);
 
   // Calculate pricing metrics for the hero
   const priceRange = useMemo(() => {
@@ -352,41 +333,6 @@ export default function RestaurantDetailScreen() {
                 </button>
               </div>
             </div>
-
-            {/* Category Filter Pills Bar */}
-            {availableCategories.length > 1 ? (
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-1">
-                {availableCategories.map(({ category, count }) => {
-                  const isSelected = selectedCategory === category;
-                  const icon = getCategoryIcon(category, 14);
-
-                  return (
-                    <button
-                      key={category}
-                      type="button"
-                      onClick={() => setSelectedCategory(category)}
-                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs font-semibold transition cursor-pointer select-none min-h-[36px] ${
-                        isSelected
-                          ? "bg-emerald-600 text-white font-bold shadow-xs"
-                          : "border border-slate-200/90 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                      }`}
-                    >
-                      {icon}
-                      <span>{category}</span>
-                      <span
-                        className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums ${
-                          isSelected
-                            ? "bg-emerald-700 text-emerald-100"
-                            : "bg-slate-100 text-slate-500"
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
           </div>
 
           {/* Search & Sort Controls Bar */}
@@ -446,23 +392,20 @@ export default function RestaurantDetailScreen() {
                 title={
                   search.trim()
                     ? `No dishes match "${search}"`
-                    : selectedCategory !== "All"
-                      ? `No dishes in ${selectedCategory}`
-                      : "Menu catalog is empty"
+                    : "Menu catalog is empty"
                 }
                 description={
-                  search.trim() || selectedCategory !== "All"
-                    ? "Try adjusting your search criteria or reset category filters."
+                  search.trim()
+                    ? "Try adjusting your search criteria or clear the search query."
                     : "This restaurant does not have verified menu items yet. When team members order custom items and an admin approves the paper receipt, dishes get automatically saved here!"
                 }
                 action={
-                  search.trim() || selectedCategory !== "All" ? (
+                  search.trim() ? (
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => {
                         setSearch("");
-                        setSelectedCategory("All");
                       }}
                     >
                       Reset Filters

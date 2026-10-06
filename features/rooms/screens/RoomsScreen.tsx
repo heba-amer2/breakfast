@@ -14,6 +14,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import { TopBar } from "@/components/layout/top-bar";
 import { RoomCard } from "@/components/rooms/room-card";
 import { RoomsTable } from "@/components/rooms/rooms-table";
+import { ErrorBanner } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,7 +56,7 @@ export default function RoomsScreen() {
     setLoading(false);
   });
 
-  const { activeRooms, activeCount, closedRooms, closedCount } =
+  const { activeRooms, activeCount, closedRooms } =
     useActiveRoomsTracker(rooms);
 
   const sourceRooms = currentTab === "OPEN" ? activeRooms : closedRooms;
@@ -108,11 +109,7 @@ export default function RoomsScreen() {
       />
 
       <PageContainer className="space-y-4 sm:space-y-6">
-        {error ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {error}
-          </div>
-        ) : null}
+        {error ? <ErrorBanner>{error}</ErrorBanner> : null}
 
         {/* Tab Switcher & View Mode Toggle */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

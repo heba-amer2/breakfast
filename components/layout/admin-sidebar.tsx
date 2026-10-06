@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   FiArrowRight,
   FiCheckSquare,
@@ -10,13 +10,13 @@ import {
   FiGrid,
   FiHome,
   FiLogOut,
-  FiMenu,
   FiPlusCircle,
   FiShield,
   FiUsers,
-  FiX,
 } from "react-icons/fi";
 
+import { NavLink } from "@/components/layout/nav-link";
+import { SidebarShell } from "@/components/layout/sidebar-shell";
 import { logout } from "@/features/auth/store/authSlice";
 import { useAppDispatch, useAppSelector } from "@/features/shared/store/hooks";
 
@@ -30,50 +30,6 @@ const mgmtNav = [
   { href: "/admin/restaurants", label: "Restaurants & Menus", icon: FiCoffee },
   { href: "/admin/users-management", label: "Team & Roles", icon: FiUsers },
 ];
-
-function NavLink({
-  href,
-  label,
-  icon: Icon,
-  onNavigate,
-}: {
-  href: string;
-  label: string;
-  icon: typeof FiHome;
-  onNavigate?: () => void;
-}) {
-  const pathname = usePathname();
-  const active = pathname === href || pathname.startsWith(`${href}/`);
-
-  return (
-    <Link
-      href={href}
-      onClick={onNavigate}
-      className={[
-        "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-150 select-none",
-        active
-          ? "bg-slate-900 text-white font-semibold shadow-xs"
-          : "text-slate-600 hover:bg-slate-100/90 hover:text-slate-900",
-      ].join(" ")}
-    >
-      {active ? (
-        <span
-          className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-emerald-500"
-          aria-hidden
-        />
-      ) : null}
-      <Icon
-        size={18}
-        className={
-          active
-            ? "text-emerald-400"
-            : "text-slate-400 transition-colors group-hover:text-slate-600"
-        }
-      />
-      <span>{label}</span>
-    </Link>
-  );
-}
 
 export function AdminSidebar() {
   const dispatch = useAppDispatch();
@@ -147,7 +103,7 @@ export function AdminSidebar() {
         </p>
         {opsNav.map((item) => (
           <div key={item.href} className="relative">
-            <NavLink {...item} onNavigate={close} />
+            <NavLink {...item} onNavigate={close} variant="admin" />
             {item.href === "/admin/approval-queue" && pendingCount > 0 ? (
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-[10px] font-bold text-white">
                 {pendingCount}
@@ -160,7 +116,7 @@ export function AdminSidebar() {
           Directory & Team
         </p>
         {mgmtNav.map((item) => (
-          <NavLink key={item.href} {...item} onNavigate={close} />
+          <NavLink key={item.href} {...item} onNavigate={close} variant="admin" />
         ))}
 
         <p className="mb-2 mt-5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -209,41 +165,14 @@ export function AdminSidebar() {
   );
 
   return (
-    <>
-      <button
-        type="button"
-        className="fixed left-4 top-3.5 sm:top-4 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 cursor-pointer lg:hidden"
-        onClick={() => setOpen(true)}
-        aria-label="Open admin menu"
-      >
-        <FiMenu size={18} />
-      </button>
-
-      {open ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            type="button"
-            className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs transition-opacity"
-            aria-label="Close admin menu overlay"
-            onClick={close}
-          />
-          <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-white shadow-2xl transition-transform">
-            <button
-              type="button"
-              className="absolute right-3.5 top-4 rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
-              onClick={close}
-              aria-label="Close menu"
-            >
-              <FiX size={18} />
-            </button>
-            {content}
-          </aside>
-        </div>
-      ) : null}
-
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-slate-200/90 bg-white shadow-2xs lg:block">
-        {content}
-      </aside>
-    </>
+    <SidebarShell
+      open={open}
+      onOpen={() => setOpen(true)}
+      onClose={close}
+      menuAriaLabel="Open admin menu"
+      closeOverlayAriaLabel="Close admin menu overlay"
+    >
+      {content}
+    </SidebarShell>
   );
 }
